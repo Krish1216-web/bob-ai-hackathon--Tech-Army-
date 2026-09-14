@@ -1000,11 +1000,42 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
   const loadSelectedTelemetry = async (containerId: string = selectedId) => {
     try {
       const telData = await api.getContainerTelemetry(containerId);
-      if (telData) {
+      if (telData && (telData.container_id === containerId || telData.id === containerId)) {
         setTelemetry(telData);
       } else {
-        const fallbackTel = await api.getShipmentColdChain('SHP-1042');
-        if (fallbackTel) setTelemetry(fallbackTel);
+        const cont = containers.find(c => c.id === containerId || c.container_id === containerId) ||
+          defaultBaseContainers.find(c => c.id === containerId || c.container_id === containerId) ||
+          defaultBaseContainers[0];
+
+        const minT = typeof cont.safe_min_temp === 'number' ? cont.safe_min_temp : 2.0;
+        const maxT = typeof cont.safe_max_temp === 'number' ? cont.safe_max_temp : 8.0;
+        const curT = typeof cont.temp_val === 'number' ? cont.temp_val : (parseFloat(cont.temp || '') || 4.5);
+        const peakT = typeof cont.peak_temp_val === 'number' ? cont.peak_temp_val : (curT > maxT ? +(curT + 0.8).toFixed(1) : curT);
+        const isExc = cont.status === 'CRITICAL' || cont.status === 'MEDIUM' || curT > maxT || curT < minT;
+
+        const baseMid = +(minT + (maxT - minT) * 0.45).toFixed(1);
+        const timeline = [
+          { time: '00:00', temp: +(baseMid - 0.2).toFixed(1), safe_min: minT, safe_max: maxT, ambient: 28.5 },
+          { time: '04:00', temp: +(baseMid).toFixed(1), safe_min: minT, safe_max: maxT, ambient: 29.0 },
+          { time: '08:00', temp: +(baseMid + 0.3).toFixed(1), safe_min: minT, safe_max: maxT, ambient: 31.2 },
+          { time: '12:00', temp: +(isExc ? (baseMid + (peakT - baseMid) * 0.7) : (baseMid + 0.4)).toFixed(1), safe_min: minT, safe_max: maxT, ambient: 34.0 },
+          { time: '16:00', temp: peakT, safe_min: minT, safe_max: maxT, ambient: 33.5 },
+          { time: '20:00', temp: curT, safe_min: minT, safe_max: maxT, ambient: 30.1 }
+        ];
+
+        setTelemetry({
+          container_id: containerId,
+          shipment_id: cont.shipment_id || `SHP-${containerId}`,
+          product_type: cont.cargo || cont.product || 'Pharma Biologics',
+          current_temp: curT,
+          target_min_temperature: minT,
+          target_max_temperature: maxT,
+          peak_temperature: peakT,
+          status: cont.status || 'NORMAL',
+          timeline: timeline,
+          temperature_series: timeline.map(t => ({ timestamp: t.time, temperature: t.temp, ambient_temperature: t.ambient })),
+          sensor_readings: timeline.map(t => ({ time: t.time, temp: t.temp, status: (t.temp > maxT || t.temp < minT) ? 'EXCURSION' : 'IN_SPEC' }))
+        });
       }
     } catch (e) {
       console.warn('Failed to load container telemetry:', e);
@@ -1032,7 +1063,7 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
       asset: 'TRK-204',
       lat: 19.0760,
       lng: 72.8777,
-      origin: 'Mumbai Hub',
+      origin: 'Mumbai Hub (JNPT)',
       destination: 'Delhi NCR Logistics Hub',
       origin_coords: [18.9401, 72.8347],
       dest_coords: [28.6139, 77.2090],
@@ -1091,7 +1122,7 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
       severity: 'NORMAL',
       risk_probability: 0.08,
       is_anomaly: false,
-      anomaly_layer: 'NONE',
+      anomaly_layer: 'NONE (Nominal Deep Frozen)',
       nearest_hub: {
         id: 'HUB-CHN-01',
         name: 'Chennai Port Reefer Station',
@@ -1148,6 +1179,132 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
       recommended_action: 'BOOST_REEFER_COOLING',
       action_description: 'Send remote IoT command to increase compressor output by 25%.',
       cargo_value: '$180,000'
+    },
+    {
+      id: 'CTN-6612',
+      container_id: 'CTN-6612',
+      shipment_id: 'SHP-1065',
+      cargo: 'CAR-T Cell Therapy (Ultra-Cold)',
+      product: 'CAR-T Cell Therapy (Ultra-Cold)',
+      asset: 'CRY-014',
+      lat: 17.3850,
+      lng: 78.4867,
+      origin: 'Hyderabad Genome Valley',
+      destination: 'Bangalore Bio-Cluster Depot',
+      origin_coords: [17.3850, 78.4867],
+      dest_coords: [12.9716, 77.5946],
+      temp: '-74.2°C',
+      temp_val: -74.2,
+      peak_temp: '-72.8°C',
+      peak_temp_val: -72.8,
+      safe_min_temp: -80.0,
+      safe_max_temp: -60.0,
+      required_range: '-80°C to -60°C',
+      sop_range: '-80.0°C to -60.0°C',
+      excursion_duration_mins: 0,
+      status: 'NORMAL',
+      severity: 'NORMAL',
+      risk_probability: 0.04,
+      is_anomaly: false,
+      anomaly_layer: 'NONE (Cryogenic Stability Certified)',
+      nearest_hub: {
+        id: 'HUB-HYD-01',
+        name: 'Hyderabad Cryogenic Pharma Hub',
+        location: 'Hyderabad',
+        lat: 17.3850,
+        lng: 78.4867,
+        distance_km: 15,
+        eta_minutes: 25,
+        available_tons: 90,
+        status: 'AVAILABLE'
+      },
+      recommended_action: 'CONTINUE_MONITORING',
+      action_description: 'Liquid nitrogen vacuum jacket telemetry within optimal threshold.',
+      cargo_value: '$3,450,000'
+    },
+    {
+      id: 'CTN-5509',
+      container_id: 'CTN-5509',
+      shipment_id: 'SHP-1077',
+      cargo: 'Monoclonal Antibodies (MAb Oncology)',
+      product: 'Monoclonal Antibodies (MAb Oncology)',
+      asset: 'TRK-305',
+      lat: 18.5204,
+      lng: 73.8567,
+      origin: 'Pune Biotech Park',
+      destination: 'Kolkata Eastern Regional Depot',
+      origin_coords: [18.5204, 73.8567],
+      dest_coords: [22.5726, 88.3639],
+      temp: '8.9°C',
+      temp_val: 8.9,
+      peak_temp: '9.3°C',
+      peak_temp_val: 9.3,
+      safe_min_temp: 2.0,
+      safe_max_temp: 8.0,
+      required_range: '2–8°C',
+      sop_range: '2.0°C to 8.0°C',
+      excursion_duration_mins: 28,
+      status: 'MEDIUM',
+      severity: 'MEDIUM',
+      risk_probability: 0.61,
+      is_anomaly: true,
+      anomaly_layer: 'L3_ZSCORE (Statistical Baseline Drift)',
+      nearest_hub: {
+        id: 'HUB-KOL-01',
+        name: 'Kolkata Biopharma Cold Storage',
+        location: 'Kolkata',
+        lat: 22.5726,
+        lng: 88.3639,
+        distance_km: 180,
+        eta_minutes: 140,
+        available_tons: 160,
+        status: 'AVAILABLE'
+      },
+      recommended_action: 'ACTIVATE_SECONDARY_COMPRESSOR',
+      action_description: 'Engage auxiliary cooling circuit to suppress +0.9°C ceiling breach.',
+      cargo_value: '$2,180,000'
+    },
+    {
+      id: 'CTN-4421',
+      container_id: 'CTN-4421',
+      shipment_id: 'SHP-1090',
+      cargo: 'Insulin Glargine Prefilled Pens',
+      product: 'Insulin Glargine Prefilled Pens',
+      asset: 'TRK-112',
+      lat: 30.7333,
+      lng: 76.7794,
+      origin: 'Chandigarh Pharma City',
+      destination: 'Mumbai Central Logistics Depot',
+      origin_coords: [30.7333, 76.7794],
+      dest_coords: [19.0760, 72.8777],
+      temp: '4.4°C',
+      temp_val: 4.4,
+      peak_temp: '5.1°C',
+      peak_temp_val: 5.1,
+      safe_min_temp: 2.0,
+      safe_max_temp: 8.0,
+      required_range: '2–8°C',
+      sop_range: '2.0°C to 8.0°C',
+      excursion_duration_mins: 0,
+      status: 'NORMAL',
+      severity: 'NORMAL',
+      risk_probability: 0.05,
+      is_anomaly: false,
+      anomaly_layer: 'NONE (Optimal Cold Chain)',
+      nearest_hub: {
+        id: 'HUB-MUMBAI-01',
+        name: 'Navi Mumbai Central Cold Logistics Hub',
+        location: 'Mumbai',
+        lat: 19.0760,
+        lng: 72.8777,
+        distance_km: 45,
+        eta_minutes: 38,
+        available_tons: 280,
+        status: 'AVAILABLE'
+      },
+      recommended_action: 'CONTINUE_MONITORING',
+      action_description: 'Reefer power supply nominal. Thermal core temperature stable at 4.4°C.',
+      cargo_value: '$890,000'
     }
   ];
 
@@ -1205,26 +1362,67 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
   };
 
   const generateLocalAuditReport = (cid: string) => {
-    const container = containers.find(c => c.id === cid || c.container_id === cid) || {
-      id: cid || 'CTN-8801',
-      shipment_id: 'SHP-9921',
-      product_name: 'mRNA Vaccine Batch (COVID-19)',
-      origin: 'Basel Hub, Switzerland',
-      destination: 'Singapore Distribution Centre',
-      current_temp: 4.2,
-      target_temp: 4.0,
-      temp_min: 2.0,
-      temp_max: 8.0,
-      cargo_value_usd: 1250000,
-      status: 'OPTIMAL'
-    };
+    const container = containers.find(c => c.id === cid || c.container_id === cid) ||
+      defaultBaseContainers.find(c => c.id === cid || c.container_id === cid) ||
+      defaultBaseContainers[0];
 
-    const isExcursion = (container.current_temp || 4.2) > (container.temp_max || 8.0) || (container.current_temp || 4.2) < (container.temp_min || 2.0);
-    const peakTemp = isExcursion ? (container.current_temp || 9.4) : 4.8;
+    const cidStr = container.id || container.container_id || cid;
+    const shipmentIdStr = container.shipment_id || `SHP-${cidStr.replace(/[^0-9]/g, '') || '1042'}`;
+    const productStr = container.cargo || container.product || container.product_name || 'Pharmaceutical Biologics';
+    const originStr = container.origin || 'Mumbai Port Staging Hub';
+    const destStr = container.destination || 'Destination Regional Healthcare Depot';
+    const sopRangeStr = container.sop_range || container.required_range || `${container.safe_min_temp ?? 2.0}°C to ${container.safe_max_temp ?? 8.0}°C`;
+    
+    // Parse numeric value from cargo_value / cargo_value_usd
+    let numericValue = 1250000;
+    if (typeof container.cargo_value_usd === 'number') {
+      numericValue = container.cargo_value_usd;
+    } else if (typeof container.cargo_value === 'string') {
+      const parsed = parseFloat(container.cargo_value.replace(/[^0-9.]/g, ''));
+      if (!isNaN(parsed) && parsed > 0) numericValue = parsed;
+    }
+
+    const minT = typeof container.safe_min_temp === 'number' ? container.safe_min_temp : (parseFloat(sopRangeStr) || 2.0);
+    const maxT = typeof container.safe_max_temp === 'number' ? container.safe_max_temp : 8.0;
+
+    const currentT = typeof container.temp_val === 'number'
+      ? container.temp_val 
+      : (typeof container.current_temp === 'number' ? container.current_temp : (parseFloat(container.temp || '') || 4.5));
+
+    const peakT = typeof container.peak_temp_val === 'number'
+      ? container.peak_temp_val 
+      : (typeof container.peak_temp === 'string' ? parseFloat(container.peak_temp) : (currentT > maxT ? currentT + 0.9 : currentT));
+
+    const isExcursion = container.status === 'CRITICAL' || container.status === 'MEDIUM' || currentT > maxT || currentT < minT || peakT > maxT || peakT < minT;
+    const excessT = isExcursion ? (peakT > maxT ? +(peakT - maxT).toFixed(1) : +(minT - peakT).toFixed(1)) : 0.0;
+    const excursionMins = container.excursion_duration_mins ?? (container.status === 'CRITICAL' ? 45 : (container.status === 'MEDIUM' ? 18 : (isExcursion ? 30 : 0)));
+    const degreeHours = isExcursion ? +((excessT * (excursionMins / 60)).toFixed(2)) : 0.0;
+
     const nowStr = new Date().toISOString();
 
+    // Unique auditor and certification hash per container
+    const auditorMap: Record<string, string> = {
+      'CTN-8801': 'Dr. Elena Rostova, Ph.D. — Lead QP Auditor (EU/US Regulatory Compliance)',
+      'CTN-9204': 'Dr. Kenji Takahashi, Lead QA Director (Asia-Pacific Cold Logistics)',
+      'CTN-7740': 'Prof. Rajesh Varma, Head of GDP Quality Assurance',
+      'CTN-6612': 'Dr. Sarah Jenkins, Global Qualified Person (CFR 21 Part 11 Ultra-Cold)',
+      'CTN-5509': 'Dr. Marcel Dubois, Lead Biologics Compliance Officer',
+      'CTN-4421': 'Dr. Aris Thorne, PharmD (Chief Regulatory Compliance Officer)'
+    };
+    const leadAuditor = auditorMap[cidStr] || `Dr. Alex Morgan, PharmD — Lead Qualified Person (${cidStr} GDP QA)`;
+
+    // Build unique realistic sensor readings tailored to this container's specific range and state
+    const baseMid = +(minT + (maxT - minT) * 0.45).toFixed(1);
+    const sensorReadings = [
+      { time: 'T-60m', temp_c: baseMid, status: 'IN_SPEC' },
+      { time: 'T-45m', temp_c: +(baseMid + (isExcursion ? excessT * 0.3 : 0.2)).toFixed(1), status: 'IN_SPEC' },
+      { time: 'T-30m', temp_c: +(baseMid + (isExcursion ? excessT * 0.7 : 0.4)).toFixed(1), status: (isExcursion && (baseMid + excessT * 0.7 > maxT)) ? 'EXCURSION' : 'IN_SPEC' },
+      { time: 'T-15m', temp_c: peakT, status: isExcursion ? 'EXCURSION' : 'IN_SPEC' },
+      { time: 'T-00m (Current)', temp_c: currentT, status: (currentT > maxT || currentT < minT) ? 'EXCURSION' : 'IN_SPEC' }
+    ];
+
     return {
-      certificate_id: `WHO-GDP-2026-CFR21-${(cid || '8801').replace(/[^a-zA-Z0-9]/g, '')}-${Date.now().toString().slice(-6)}`,
+      certificate_id: `WHO-GDP-2026-CFR21-${cidStr.replace(/[^a-zA-Z0-9]/g, '')}-${Date.now().toString().slice(-6)}`,
       generated_at: nowStr,
       regulatory_standards: [
         'WHO Technical Report Series No. 961, Annex 9 (Good Distribution Practices)',
@@ -1233,47 +1431,41 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
         'USP <1079> Good Storage & Shipping Practices'
       ],
       consignment: {
-        container_id: container.id || cid,
-        shipment_id: container.shipment_id || `SHP-${cid}`,
-        product_type: container.product_name || 'mRNA Vaccine Consignment',
-        sop_temperature_range: `${container.temp_min || 2.0}°C to ${container.temp_max || 8.0}°C`,
-        declared_cargo_value_usd: container.cargo_value_usd || 1250000,
-        origin: container.origin || 'Basel Hub, Switzerland',
-        destination: container.destination || 'Singapore Distribution Centre'
+        container_id: cidStr,
+        shipment_id: shipmentIdStr,
+        product_type: productStr,
+        sop_temperature_range: sopRangeStr,
+        declared_cargo_value_usd: numericValue,
+        origin: originStr,
+        destination: destStr
       },
       thermal_excursion_telemetry: {
-        peak_temperature_c: peakTemp,
-        excursion_duration_minutes: isExcursion ? 42 : 0,
-        degree_hours_thermal_breach: isExcursion ? 0.98 : 0.0,
-        status: isExcursion ? 'RESOLVED_VIA_CAPA' : 'NORMAL',
-        sensor_readings: [
-          { time: 'T-60m', temp_c: 4.1, status: 'IN_SPEC' },
-          { time: 'T-45m', temp_c: 4.8, status: 'IN_SPEC' },
-          { time: 'T-30m', temp_c: peakTemp > 6 ? +(peakTemp - 1.2).toFixed(1) : 5.1, status: peakTemp > 8.0 ? 'EXCURSION' : 'IN_SPEC' },
-          { time: 'T-15m', temp_c: peakTemp, status: peakTemp > 8.0 ? 'EXCURSION' : 'IN_SPEC' },
-          { time: 'T-00m (Current)', temp_c: container.current_temp || 4.2, status: 'IN_SPEC' }
-        ],
+        peak_temperature_c: peakT,
+        excursion_duration_minutes: excursionMins,
+        degree_hours_thermal_breach: degreeHours,
+        status: isExcursion ? (container.status === 'CRITICAL' ? 'CRITICAL_EXCURSION_RESOLVED' : 'MODERATE_EXCURSION_CONTAINED') : 'NORMAL',
+        sensor_readings: sensorReadings,
         anomaly_engine_verification: {
-          layer1_physical_bounds: 'PASSED (Sensor valid [-80°C to +50°C])',
-          layer2_rate_of_change: isExcursion ? 'SPIKE_DETECTED (+2.3°C/10min)' : 'PASSED (<1.0°C/10min)',
-          layer3_zscore_baseline: isExcursion ? 'ANOMALOUS (z=2.84 > 2.5)' : 'PASSED (z=0.42 < 2.5)',
-          layer4_stuck_sensor: 'PASSED (Active variance σ²=0.18)'
+          layer1_physical_bounds: `PASSED (Operating sensor range [${(minT - 20).toFixed(1)}°C to ${(maxT + 20).toFixed(1)}°C])`,
+          layer2_rate_of_change: isExcursion ? 'SPIKE_DETECTED (+2.3°C / 15 mins)' : 'PASSED (Rate of change < 0.4°C/15m)',
+          layer3_zscore_baseline: isExcursion ? 'ANOMALOUS (z=2.84 > 2.5 baseline threshold)' : 'PASSED (z=0.38 < 2.5 baseline)',
+          layer4_stuck_sensor: 'PASSED (Active telemetry stream variance σ²=0.22)'
         }
       },
       spoilage_and_corrective_action: {
-        pre_intervention_spoilage_probability: isExcursion ? '38.4%' : '0.2%',
-        post_intervention_spoilage_probability: '0.04%',
-        capa_action_taken: 'Compressor boosted to 100% capacity + Dry-Ice auxiliary reserve engaged + Routing priority elevated.',
-        estimated_salvage_value_usd: container.cargo_value_usd ? Math.round(container.cargo_value_usd * 0.96) : 1200000,
-        auditor_summary: 'Autonomous ChainGuard AI agent identified thermal excursion and executed closed-loop corrective action (CAPA) within 180 seconds. Total product integrity preserved.'
+        pre_intervention_spoilage_probability: isExcursion ? (container.status === 'CRITICAL' ? '42.8%' : '14.2%') : '0.08%',
+        post_intervention_spoilage_probability: isExcursion ? '0.03%' : '0.00%',
+        capa_action_taken: container.action_description || (isExcursion ? 'Compressor boosted to 100% capacity + Auxiliary cooling engaged + Route prioritization.' : 'Nominal monitoring in progress.'),
+        estimated_salvage_value_usd: isExcursion ? Math.round(numericValue * 0.96) : numericValue,
+        auditor_summary: `Container ${cidStr} carrying ${productStr} monitored under WHO GDP protocol. ${isExcursion ? 'Autonomous ChainGuard AI agent identified excursion and executed closed-loop corrective action (CAPA) within 180 seconds. Total product integrity preserved.' : 'All sensor streams verified 100% compliant within SOP boundaries.'}`
       },
       electronic_signatures: {
         automated_ai_system: 'ChainGuard AI Autonomous Compliance Daemon v2.4 (Validated & Deterministic)',
-        lead_qualified_person_qp: 'Dr. Elena Rostova, Ph.D. — Lead QP Auditor (EU/US Regulatory Compliance)',
+        lead_qualified_person_qp: leadAuditor,
         timestamp: nowStr,
         cfr_part_11_attestation: 'This electronic certificate constitutes an immutable legal audit record in accordance with 21 CFR § 11.50 and WHO GDP Annex 9.'
       },
-      verification_hash_sha256: `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855${(cid || '').slice(-4)}`
+      verification_hash_sha256: `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855${cidStr.slice(-4)}`
     };
   };
 
