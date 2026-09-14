@@ -30,7 +30,7 @@ const routePages: Record<string, { title: string; subtitle: string }> = {
 type Toast = { message: string; tone: 'success' | 'danger' };
 
 function App() {
-  const [path, setPath] = useState(window.location.hash.slice(1) || '/landing');
+  const [path, setPath] = useState(window.location.hash.slice(1) || '/');
   const [collapsed, setCollapsed] = useState(false);
   const [copilot, setCopilot] = useState(false);
   const [notifications, setNotifications] = useState(false);
@@ -48,7 +48,7 @@ function App() {
   const [dashboardKpis, setDashboardKpis] = useState<any>(null);
 
   useEffect(() => {
-    const onHash = () => setPath(window.location.hash.slice(1) || '/landing');
+    const onHash = () => setPath(window.location.hash.slice(1) || '/');
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
