@@ -281,14 +281,10 @@ CREATE TABLE IF NOT EXISTS cold_storage_hubs (
     location VARCHAR(255) NOT NULL,
     latitude DOUBLE PRECISION NOT NULL,
     longitude DOUBLE PRECISION NOT NULL,
-    capacity DOUBLE PRECISION DEFAULT 500.0,
     capacity_tons DOUBLE PRECISION DEFAULT 500.0,
-    available_capacity DOUBLE PRECISION DEFAULT 180.0,
     available_tons DOUBLE PRECISION DEFAULT 180.0,
     occupied_pct DOUBLE PRECISION DEFAULT 64.0,
     certified BOOLEAN DEFAULT TRUE,
-    supported_temperature_profiles TEXT[] DEFAULT ARRAY['ultra_cold', 'chilled', 'frozen'],
-    temp_zones TEXT[] DEFAULT ARRAY['ultra_cold', 'chilled', 'frozen'],
     status VARCHAR(50) DEFAULT 'OPERATIONAL',
     contact VARCHAR(100),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -310,7 +306,6 @@ CREATE TABLE IF NOT EXISTS recommendations (
     description TEXT NOT NULL,
     recommendation TEXT NOT NULL,
     explanation TEXT,
-    why_reasons TEXT,
     shipment_id VARCHAR(64) REFERENCES shipments(id) ON DELETE CASCADE,
     disruption_id VARCHAR(64) REFERENCES disruptions(id) ON DELETE SET NULL,
     asset_id VARCHAR(64) REFERENCES fleet_assets(id) ON DELETE SET NULL,
@@ -322,13 +317,8 @@ CREATE TABLE IF NOT EXISTS recommendations (
     expected_cost_impact VARCHAR(50) DEFAULT '$800K',
     recommended_route VARCHAR(255),
     recommended_carrier VARCHAR(100),
-    recommended_asset VARCHAR(64),
-    actioned BOOLEAN DEFAULT FALSE,
     status VARCHAR(50) DEFAULT 'PENDING',
-    action_type VARCHAR(50),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    executed_at TIMESTAMP WITH TIME ZONE,
-    actioned_at TIMESTAMP WITH TIME ZONE
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- -----------------------------------------------------------------------------
@@ -396,7 +386,7 @@ CREATE POLICY "Allow service_role full access carriers" ON carriers FOR ALL USIN
 -- SEED DATA INSERTION
 -- =============================================================================
 
--- 1. Product Profiles
+-- 1. Product Profiles (7 columns: id, name, min_temp_c, max_temp_c, max_excursion_mins, critical_temp_c, description)
 INSERT INTO product_profiles (id, name, min_temp_c, max_temp_c, max_excursion_mins, critical_temp_c, description)
 VALUES 
 ('VACCINES_SOP', 'Vaccines (WHO/SOP Profile)', 2.0, 8.0, 30, 10.0, 'Configured Product/SOP Range 2–8°C'),
@@ -404,7 +394,7 @@ VALUES
 ('BIOLOGICS_SOP', 'Biologics', 2.0, 8.0, 45, 10.5, 'Configured Product/SOP Range 2–8°C')
 ON CONFLICT (id) DO NOTHING;
 
--- 2. Carriers
+-- 2. Carriers (7 columns: id, name, transport_mode, reliability_score, cost_index, available_capacity_teu, cold_chain_certified)
 INSERT INTO carriers (id, name, transport_mode, reliability_score, cost_index, available_capacity_teu, cold_chain_certified)
 VALUES
 ('CAR-A', 'Carrier A', 'ROAD', 0.88, 1.0, 40, true),
@@ -413,7 +403,7 @@ VALUES
 ('CAR-D', 'Carrier D', 'AIR_SEA', 0.91, 1.2, 30, true)
 ON CONFLICT (id) DO NOTHING;
 
--- 3. Disruptions
+-- 3. Disruptions (11 columns: id, disruption_id, title, disruption_type, severity, location, affected_corridor, duration_hours, status, description, delay_estimate_hours)
 INSERT INTO disruptions (id, disruption_id, title, disruption_type, severity, location, affected_corridor, duration_hours, status, description, delay_estimate_hours)
 VALUES
 ('DIS-01', 'DIS-01', 'Mumbai Port Strike', 'PORT_STRIKE', 'CRITICAL', 'Mumbai, India — Jawaharlal Nehru Port', 'West Coast Sea Corridor', 72, 'ACTIVE', 'Dock workers at JNPT have initiated an indefinite strike over wage disputes. Container operations halted.', 72.0),
@@ -422,7 +412,7 @@ VALUES
 ('DIS-04', 'DIS-04', 'Carrier Capacity Reduction', 'CAPACITY_REDUCTION', 'MEDIUM', 'Western India — Carrier network', 'Western Rail & Feeder', 36, 'ACTIVE', 'Shortage of qualified reefer drivers impacting transit capacity across Maharashtra.', 36.0)
 ON CONFLICT (id) DO NOTHING;
 
--- 4. Fleet Assets
+-- 4. Fleet Assets (13 columns: id, asset_id, asset_type, identifier, location, capacity_tons, status, idle_hours, utilisation_pct, is_refrigerated, match_score, projected_gain, assigned_shipment_id)
 INSERT INTO fleet_assets (id, asset_id, asset_type, identifier, location, capacity_tons, status, idle_hours, utilisation_pct, is_refrigerated, match_score, projected_gain, assigned_shipment_id)
 VALUES
 ('TRK-204', 'TRK-204', 'TRUCK', 'MH-04-AB-204', 'Mumbai', 24.0, 'IDLE', 14.0, 18.5, true, 91, '+35.7%', NULL),
@@ -434,7 +424,7 @@ VALUES
 ('CTN-8831', 'CTN-8831', 'CONTAINER', 'CTN-8831-REEFER', 'Mundra', 22.0, 'ACTIVE', 0.0, 82.0, true, 89, '+0.0%', 'SHP-1082')
 ON CONFLICT (id) DO NOTHING;
 
--- 5. Containers
+-- 5. Containers (18 columns: id, container_id, shipment_id, container_type, product_type, status, current_temperature, peak_temperature, target_min_temperature, target_max_temperature, required_range, latitude, longitude, current_location, asset_id, is_anomaly, anomaly_layer, spoilage_risk_pct)
 INSERT INTO containers (id, container_id, shipment_id, container_type, product_type, status, current_temperature, peak_temperature, target_min_temperature, target_max_temperature, required_range, latitude, longitude, current_location, asset_id, is_anomaly, anomaly_layer, spoilage_risk_pct)
 VALUES
 ('CTN-8801', 'CTN-8801', 'SHP-1042', 'REEFER_40FT', 'Pfizer COVID-19 Vaccine Vials', 'CRITICAL', 10.3, 11.2, 2.0, 8.0, '2°C - 8°C', 18.9401, 72.8347, 'Mumbai JNPT', 'TRK-204', true, 'L1_BOUNDS', 87.4),
@@ -443,20 +433,20 @@ VALUES
 ('CTN-4421', 'CTN-4421', 'SHP-1063', 'REEFER_40FT', 'Semiconductors (Thermal Controlled)', 'NORMAL', 5.2, 5.4, 2.0, 8.0, '2°C - 8°C', 28.6139, 77.2090, 'Delhi Cargo Terminal', 'TRK-089', false, 'NONE', 12.0)
 ON CONFLICT (id) DO NOTHING;
 
--- 6. Shipments
+-- 6. Shipments (27 columns: id, shipment_id, route, origin, destination, cargo, cargo_type, value, value_usd, cargo_value, eta, risk, risk_score, disruption, disruption_id, carrier, asset, asset_id, container_id, action, status, priority, delay_hours, current_location, is_cold_chain, temperature_controlled, product_profile_id)
 INSERT INTO shipments (id, shipment_id, route, origin, destination, cargo, cargo_type, value, value_usd, cargo_value, eta, risk, risk_score, disruption, disruption_id, carrier, asset, asset_id, container_id, action, status, priority, delay_hours, current_location, is_cold_chain, temperature_controlled, product_profile_id)
 VALUES
-('SHP-1042', 'SHP-1042', 'Mumbai → Frankfurt', 'Mumbai', 'Frankfurt', 'Vaccines (Biologics)', 'Biologics / Vaccines', '$1.25M', 1250000.0, 1250000.0, 'Sep 16', 92, 92, 'Mumbai Port Strike', 'DIS-01', 'Carrier B', 'TRK-204', 'TRK-204', 'CTN-8801', 'Reroute', 'AT_RISK', 'CRITICAL', 72, 'Mumbai JNPT', true, true, 'VACCINES_SOP'),
-('SHP-1051', 'SHP-1051', 'Chennai → Singapore', 'Chennai', 'Singapore', 'Pharmaceuticals', 'Pharma', '$740K', 740000.0, 740000.0, 'Sep 17', 78, 78, 'Chennai Cyclone Warning', 'DIS-02', 'Carrier C', 'VSL-003', 'CTN-8824', 'Expedite', 'AT_RISK', 'HIGH', 48, 'Chennai Port', true, true, 'PHARMA_SOP'),
-('SHP-1063', 'SHP-1063', 'Delhi → Frankfurt', 'Delhi', 'Frankfurt', 'High-Value Semiconductors', 'Electronics', '$510K', 510000.0, 510000.0, 'Sep 18', 64, 64, 'Delhi Highway Closure', 'DIS-03', 'Carrier A', 'TRK-089', 'CTN-4421', 'Reroute', 'DELAYED', 'MEDIUM', 24, 'Delhi Terminal', true, true, 'PHARMA_SOP'),
-('SHP-1077', 'SHP-1077', 'Pune → Dubai', 'Pune', 'Dubai', 'Diagnostic Kits', 'Healthcare', '$380K', 380000.0, 380000.0, 'Sep 19', 42, 42, 'Carrier Capacity Reduction', 'DIS-04', 'Carrier B', 'TRK-204', 'CTN-8801', 'Monitor', 'ON_TRACK', 'LOW', 0, 'Pune Cargo Hub', true, true, 'BIOLOGICS_SOP'),
-('SHP-1082', 'SHP-1082', 'Mundra → Rotterdam', 'Mundra', 'Rotterdam', 'Insulin Cartridges', 'Biologics', '$890K', 890000.0, 890000.0, 'Sep 21', 35, 35, 'None', NULL, 'Carrier B', 'CTN-117', 'CTN-117', 'CTN-8831', 'Monitor', 'ON_TRACK', 'LOW', 0, 'Mundra Port', true, true, 'VACCINES_SOP'),
-('SHP-1090', 'SHP-1090', 'Ahmedabad → Hamburg', 'Ahmedabad', 'Hamburg', 'Specialty Chemicals', 'Chemicals', '$620K', 620000.0, 620000.0, 'Sep 22', 28, 28, 'None', NULL, 'Carrier D', 'CTN-117', 'CTN-117', 'CTN-8831', 'Monitor', 'ON_TRACK', 'LOW', 0, 'Ahmedabad Terminal', false, false, NULL),
-('SHP-1104', 'SHP-1104', 'Bangalore → London', 'Bangalore', 'London', 'Medical Devices', 'Electronics', '$430K', 430000.0, 430000.0, 'Sep 23', 22, 22, 'None', NULL, 'Carrier A', 'TRK-089', 'TRK-089', 'CTN-4421', 'Monitor', 'ON_TRACK', 'LOW', 0, 'Bangalore Hub', false, false, NULL),
-('SHP-1118', 'SHP-1118', 'Kolkata → Tokyo', 'Kolkata', 'Tokyo', 'Clinical Trial Samples', 'Biologics', '$950K', 950000.0, 950000.0, 'Sep 24', 18, 18, 'None', NULL, 'Carrier D', 'VSL-003', 'VSL-003', 'CTN-8824', 'Monitor', 'ON_TRACK', 'LOW', 0, 'Kolkata Port', true, true, 'BIOLOGICS_SOP')
+('SHP-1042', 'SHP-1042', 'Mumbai -> Frankfurt', 'Mumbai', 'Frankfurt', 'Vaccines (Biologics)', 'Biologics / Vaccines', '$1.25M', 1250000.0, 1250000.0, 'Sep 16', 92, 92, 'Mumbai Port Strike', 'DIS-01', 'Carrier B', 'TRK-204', 'TRK-204', 'CTN-8801', 'Reroute', 'AT_RISK', 'CRITICAL', 72, 'Mumbai JNPT', true, true, 'VACCINES_SOP'),
+('SHP-1051', 'SHP-1051', 'Chennai -> Singapore', 'Chennai', 'Singapore', 'Pharmaceuticals', 'Pharma', '$740K', 740000.0, 740000.0, 'Sep 17', 78, 78, 'Chennai Cyclone Warning', 'DIS-02', 'Carrier C', 'VSL-003', 'VSL-003', 'CTN-8824', 'Expedite', 'AT_RISK', 'HIGH', 48, 'Chennai Port', true, true, 'PHARMA_SOP'),
+('SHP-1063', 'SHP-1063', 'Delhi -> Frankfurt', 'Delhi', 'Frankfurt', 'High-Value Semiconductors', 'Electronics', '$510K', 510000.0, 510000.0, 'Sep 18', 64, 64, 'Delhi Highway Closure', 'DIS-03', 'Carrier A', 'TRK-089', 'TRK-089', 'CTN-4421', 'Reroute', 'DELAYED', 'MEDIUM', 24, 'Delhi Terminal', true, true, 'PHARMA_SOP'),
+('SHP-1077', 'SHP-1077', 'Pune -> Dubai', 'Pune', 'Dubai', 'Diagnostic Kits', 'Healthcare', '$380K', 380000.0, 380000.0, 'Sep 19', 42, 42, 'Carrier Capacity Reduction', 'DIS-04', 'Carrier B', 'TRK-204', 'TRK-204', 'CTN-8801', 'Monitor', 'ON_TRACK', 'LOW', 0, 'Pune Cargo Hub', true, true, 'BIOLOGICS_SOP'),
+('SHP-1082', 'SHP-1082', 'Mundra -> Rotterdam', 'Mundra', 'Rotterdam', 'Insulin Cartridges', 'Biologics', '$890K', 890000.0, 890000.0, 'Sep 21', 35, 35, 'None', NULL, 'Carrier B', 'CTN-117', 'CTN-117', 'CTN-8831', 'Monitor', 'ON_TRACK', 'LOW', 0, 'Mundra Port', true, true, 'VACCINES_SOP'),
+('SHP-1090', 'SHP-1090', 'Ahmedabad -> Hamburg', 'Ahmedabad', 'Hamburg', 'Specialty Chemicals', 'Chemicals', '$620K', 620000.0, 620000.0, 'Sep 22', 28, 28, 'None', NULL, 'Carrier D', 'CTN-117', 'CTN-117', 'CTN-8831', 'Monitor', 'ON_TRACK', 'LOW', 0, 'Ahmedabad Terminal', false, false, NULL),
+('SHP-1104', 'SHP-1104', 'Bangalore -> London', 'Bangalore', 'London', 'Medical Devices', 'Electronics', '$430K', 430000.0, 430000.0, 'Sep 23', 22, 22, 'None', NULL, 'Carrier A', 'TRK-089', 'TRK-089', 'CTN-4421', 'Monitor', 'ON_TRACK', 'LOW', 0, 'Bangalore Hub', false, false, NULL),
+('SHP-1118', 'SHP-1118', 'Kolkata -> Tokyo', 'Kolkata', 'Tokyo', 'Clinical Trial Samples', 'Biologics', '$950K', 950000.0, 950000.0, 'Sep 24', 18, 18, 'None', NULL, 'Carrier D', 'VSL-003', 'VSL-003', 'CTN-8824', 'Monitor', 'ON_TRACK', 'LOW', 0, 'Kolkata Port', true, true, 'BIOLOGICS_SOP')
 ON CONFLICT (id) DO NOTHING;
 
--- 7. Cold Storage Hubs
+-- 7. Cold Storage Hubs (12 columns: id, hub_id, name, location, latitude, longitude, capacity_tons, available_tons, occupied_pct, certified, status, contact)
 INSERT INTO cold_storage_hubs (id, hub_id, name, location, latitude, longitude, capacity_tons, available_tons, occupied_pct, certified, status, contact)
 VALUES
 ('HUB-PUNE-01', 'HUB-PUNE-01', 'Pune Pharma Cold Hub', 'Pune, Maharashtra', 18.5204, 73.8567, 200.0, 140.0, 30.0, true, 'OPERATIONAL', '+91 20 2740 1000'),
@@ -465,22 +455,22 @@ VALUES
 ('HUB-DEL-01', 'HUB-DEL-01', 'Delhi NCR Cargo Cold Hub', 'Delhi NCR', 28.5562, 77.1000, 250.0, 180.0, 28.0, true, 'OPERATIONAL', '+91 11 4963 8000')
 ON CONFLICT (id) DO NOTHING;
 
--- 8. Cold Chain Alerts
+-- 8. Cold Chain Alerts (12 columns: id, alert_id, container_id, shipment_id, severity, alert_type, temperature, peak_temperature, duration_minutes, configured_range, status, recommended_action)
 INSERT INTO cold_chain_alerts (id, alert_id, container_id, shipment_id, severity, alert_type, temperature, peak_temperature, duration_minutes, configured_range, status, recommended_action)
 VALUES
 ('ALT-001', 'ALT-001', 'CTN-8801', 'SHP-1042', 'CRITICAL', 'EXCURSION_TEMPERATURE_SPIKE', 10.3, 11.2, 45, '2°C - 8°C', 'ACTIVE', 'Divert container immediately to Pune Pharma Cold Hub (74 km, ETA 58m) or deploy auxiliary cooling unit.')
 ON CONFLICT (id) DO NOTHING;
 
--- 9. Recommendations
+-- 9. Recommendations (23 columns: id, recommendation_id, kind, recommendation_type, subject, level, title, confidence, description, recommendation, explanation, shipment_id, disruption_id, asset_id, delay_reduction_hours, expected_delay_reduction, risk_reduction_percent, expected_risk_reduction, financial_saving, expected_cost_impact, recommended_route, recommended_carrier, status)
 INSERT INTO recommendations (id, recommendation_id, kind, recommendation_type, subject, level, title, confidence, description, recommendation, explanation, shipment_id, disruption_id, asset_id, delay_reduction_hours, expected_delay_reduction, risk_reduction_percent, expected_risk_reduction, financial_saving, expected_cost_impact, recommended_route, recommended_carrier, status)
 VALUES
-('REC-a1', 'REC-a1', 'REROUTE', 'REROUTE', 'SHP-1042 (Vaccines, $1.25M)', 'CRITICAL', 'Reroute via Mundra Port + Carrier B', 94, 'SHP-1042 is trapped in the Mumbai Port strike corridor. Rerouting via Mundra Port avoids 72h strike delay and protects temperature-critical vaccine vials.', 'Reroute shipment SHP-1042 through Mundra Port using Carrier B (Certified Cold Chain reefer).', 'Mumbai Port is under indefinite strike with 72h duration. Mundra Port has 210 tons of available cold storage and immediate berth slots.', 'SHP-1042', 'DIS-01', 'TRK-204', 28, 28, 64, 64, '$800K', '$800K', 'Mumbai → Mundra → Frankfurt', 'Carrier B', 'PENDING'),
-('REC-a2', 'REC-a2', 'DIVERT', 'DIVERT', 'CTN-8801 (COVID-19 Vaccine Vials)', 'CRITICAL', 'Emergency Diversion to Pune Pharma Cold Hub', 97, 'CTN-8801 telemetry indicates temperature of 10.3°C (+5.3°C above 8°C limit) persisting for 45 minutes.', 'Execute immediate diversion to Pune Pharma Cold Hub (HUB-PUNE-01, 74 km away).', 'SOP limit exceeded. Excursion risk model indicates 87.4% probability of irreversible thermal spoilage if uncorrected within 30 minutes.', 'SHP-1042', NULL, 'TRK-204', 4, 4, 90, 90, '$1.25M', '$1.25M', 'Mumbai → Pune Pharma Cold Hub', 'Carrier B', 'PENDING'),
-('REC-a3', 'REC-a3', 'REDEPLOY', 'REDEPLOY', 'TRK-204 (Idle in Mumbai, 14h)', 'HIGH', 'Redeploy TRK-204 to Mundra Feeder Run', 91, 'TRK-204 has been idle for 14 hours at Mumbai. Redeploying to Mundra corridor increases fleet utilisation from 18.5% to 54.2%.', 'Assign TRK-204 to Mundra export feeder for urgent pharmaceutical transport.', 'Fleet asset TRK-204 has active reefer certification and is located within 12 km of current staging area.', 'SHP-1042', NULL, 'TRK-204', 18, 18, 45, 45, '$340K', '$340K', 'Mumbai JNPT → Mundra Port', 'Carrier B', 'PENDING'),
-('REC-a4', 'REC-a4', 'ESCALATE', 'ESCALATE', 'SHP-1051 (Chennai Port, $740K)', 'HIGH', 'Expedite Departure before Cyclone Landfall', 88, 'Cyclone storm warning approaching Bay of Bengal. Expediting departure avoids 48h maritime suspension.', 'Advance vessel departure by 6 hours with prioritized customs clearance.', 'Port authorities project port closure within 14 hours. Expediting avoids container demurrage and risk escalation.', 'SHP-1051', 'DIS-02', 'VSL-003', 24, 24, 52, 52, '$280K', '$280K', 'Chennai → Singapore (Direct Expedited)', 'Carrier C', 'PENDING')
+('REC-a1', 'REC-a1', 'REROUTE', 'REROUTE', 'SHP-1042 (Vaccines, $1.25M)', 'CRITICAL', 'Reroute via Mundra Port + Carrier B', 94, 'SHP-1042 is trapped in the Mumbai Port strike corridor. Rerouting via Mundra Port avoids 72h strike delay and protects temperature-critical vaccine vials.', 'Reroute shipment SHP-1042 through Mundra Port using Carrier B (Certified Cold Chain reefer).', 'Mumbai Port is under indefinite strike with 72h duration. Mundra Port has 210 tons of available cold storage and immediate berth slots.', 'SHP-1042', 'DIS-01', 'TRK-204', 28, 28, 64, 64, '$800K', '$800K', 'Mumbai -> Mundra -> Frankfurt', 'Carrier B', 'PENDING'),
+('REC-a2', 'REC-a2', 'DIVERT', 'DIVERT', 'CTN-8801 (COVID-19 Vaccine Vials)', 'CRITICAL', 'Emergency Diversion to Pune Pharma Cold Hub', 97, 'CTN-8801 telemetry indicates temperature of 10.3°C (+5.3°C above 8°C limit) persisting for 45 minutes.', 'Execute immediate diversion to Pune Pharma Cold Hub (HUB-PUNE-01, 74 km away).', 'SOP limit exceeded. Excursion risk model indicates 87.4% probability of irreversible thermal spoilage if uncorrected within 30 minutes.', 'SHP-1042', NULL, 'TRK-204', 4, 4, 90, 90, '$1.25M', '$1.25M', 'Mumbai -> Pune Pharma Cold Hub', 'Carrier B', 'PENDING'),
+('REC-a3', 'REC-a3', 'REDEPLOY', 'REDEPLOY', 'TRK-204 (Idle in Mumbai, 14h)', 'HIGH', 'Redeploy TRK-204 to Mundra Feeder Run', 91, 'TRK-204 has been idle for 14 hours at Mumbai. Redeploying to Mundra corridor increases fleet utilisation from 18.5% to 54.2%.', 'Assign TRK-204 to Mundra export feeder for urgent pharmaceutical transport.', 'Fleet asset TRK-204 has active reefer certification and is located within 12 km of current staging area.', 'SHP-1042', NULL, 'TRK-204', 18, 18, 45, 45, '$340K', '$340K', 'Mumbai JNPT -> Mundra Port', 'Carrier B', 'PENDING'),
+('REC-a4', 'REC-a4', 'ESCALATE', 'ESCALATE', 'SHP-1051 (Chennai Port, $740K)', 'HIGH', 'Expedite Departure before Cyclone Landfall', 88, 'Cyclone storm warning approaching Bay of Bengal. Expediting departure avoids 48h maritime suspension.', 'Advance vessel departure by 6 hours with prioritized customs clearance.', 'Port authorities project port closure within 14 hours. Expediting avoids container demurrage and risk escalation.', 'SHP-1051', 'DIS-02', 'VSL-003', 24, 24, 52, 52, '$280K', '$280K', 'Chennai -> Singapore (Direct Expedited)', 'Carrier C', 'PENDING')
 ON CONFLICT (id) DO NOTHING;
 
--- 10. Simulation Runs
+-- 10. Simulation Runs (12 columns: disruption_id, disruption_type, duration_hours, severity, before_delay, after_delay, delay_reduction, exposure_before, exposure_after, critical_shipments_protected, confidence, comparison_data)
 INSERT INTO simulation_runs (disruption_id, disruption_type, duration_hours, severity, before_delay, after_delay, delay_reduction, exposure_before, exposure_after, critical_shipments_protected, confidence, comparison_data)
 VALUES
 ('DIS-01', 'PORT_STRIKE', 72, 'CRITICAL', 72, 44, 28, '$1.25M', '$450K', 3, 94, '{"carrier_a_delay": 58, "carrier_b_delay": 44, "cost_delta": "+8.2%", "risk_delta": "-64%"}'::jsonb);
