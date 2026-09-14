@@ -75,7 +75,13 @@ def execute_cold_chain_action(payload: Dict[str, Any], db: Session = Depends(get
     action_type = payload.get("action_type", "RECOVER_REEFER")
     return ColdChainService.execute_action(db, container_id, action_type)
 
+@router.get("/audit-report/{container_id}")
+@router.get("/reports/audit/{container_id}")
+def get_cold_chain_audit_report(container_id: str, db: Session = Depends(get_db)):
+    return ColdChainService.generate_audit_report(db, container_id)
+
 @router.post("/{container_id}/investigate")
 @router.post("/containers/{container_id}/investigate")
 def mark_investigating(container_id: str, db: Session = Depends(get_db)):
     return ColdChainService.investigate_container(db, container_id)
+

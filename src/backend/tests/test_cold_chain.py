@@ -145,3 +145,17 @@ def test_diversion_cost_benefit_modes():
     res_eco_high = evaluate_economic_diversion(cargo_value_usd=1250000.0, spoilage_prob=0.85, mode="ECO")
     assert res_eco_high["should_divert"] is True
 
+def test_regulatory_audit_report(client):
+    res = client.get("/api/cold-chain/audit-report/CTN-8801")
+    assert res.status_code == 200
+    report = res.json()
+    assert "certificate_id" in report
+    assert "verification_hash_sha256" in report
+    assert "regulatory_standards" in report
+    assert len(report["regulatory_standards"]) >= 3
+    assert report["consignment"]["container_id"] == "CTN-8801"
+    assert "thermal_excursion_telemetry" in report
+    assert "spoilage_and_corrective_action" in report
+    assert "electronic_signatures" in report
+
+

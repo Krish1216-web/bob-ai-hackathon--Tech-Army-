@@ -79,6 +79,10 @@ export const api = {
     return await fetchJson<any>(`/cold-chain/telemetry/${containerId}`);
   },
 
+  async getAuditReport(containerId: string) {
+    return await fetchJson<any>(`/cold-chain/audit-report/${containerId}`);
+  },
+
   async createContainer(data: {
     container_id: string;
     shipment_id?: string;

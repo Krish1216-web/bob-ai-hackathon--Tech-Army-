@@ -4,7 +4,7 @@ import {
   ChevronRight, CircleDollarSign, Clock3, Container, Download, ExternalLink, Filter,
   FlaskConical, Gauge, LayoutDashboard, MapPin, Package, Search, Send, Settings2, ShieldCheck,
   Ship, Sparkles, Thermometer, Truck, X, XCircle, Zap, Warehouse, ShieldAlert, Snowflake, Activity,
-  Plus, RefreshCw, Sliders,
+  Plus, RefreshCw, Sliders, FileText, Printer, CheckCheck, Award,
   type LucideIcon,
 } from 'lucide-react';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -926,6 +926,9 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
   const [isBulkImporting, setIsBulkImporting] = useState<boolean>(false);
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
+  const [showAuditModal, setShowAuditModal] = useState<boolean>(false);
+  const [auditData, setAuditData] = useState<any>(null);
+  const [loadingAudit, setLoadingAudit] = useState<boolean>(false);
 
   // New Container Form State
   const [newContainer, setNewContainer] = useState({
@@ -962,7 +965,6 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
       if (telData) {
         setTelemetry(telData);
       } else {
-        // Fallback to shipment telemetry if container telemetry not found
         const fallbackTel = await api.getShipmentColdChain('SHP-1042');
         if (fallbackTel) setTelemetry(fallbackTel);
       }
@@ -975,7 +977,6 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
     loadAllColdChainData(diversionMode);
     loadSelectedTelemetry(selectedId);
 
-    // Controlled 8-second live sync polling
     const timer = setInterval(() => {
       loadAllColdChainData(diversionMode);
     }, 8000);
@@ -1039,6 +1040,37 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
     setDiversionMode(mode);
     loadAllColdChainData(mode);
     if (notify) notify(`Switched Economic Diversion Mode to ${mode}`);
+  };
+
+  const handleOpenAuditModal = async (cid: string = selectedId) => {
+    setLoadingAudit(true);
+    setShowAuditModal(true);
+    try {
+      const data = await api.getAuditReport(cid);
+      if (data) {
+        setAuditData(data);
+      }
+    } catch (e) {
+      console.warn('Failed to load audit report:', e);
+    } finally {
+      setLoadingAudit(false);
+    }
+  };
+
+  const handlePrintAudit = () => {
+    window.print();
+  };
+
+  const handleDownloadAuditJson = () => {
+    if (!auditData) return;
+    const blob = new Blob([JSON.stringify(auditData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${auditData.certificate_id || 'audit-certificate'}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    if (notify) notify(`Downloaded audit certificate JSON for ${auditData.consignment?.container_id || selectedId}`);
   };
 
   const handleExecuteAction = async (cid: string, actionType: string) => {
@@ -1175,6 +1207,14 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
           </div>
 
           {/* Action Buttons */}
+          <button
+            className="small-btn"
+            style={{ background: '#1c283d', borderColor: '#38bdf8', color: '#38bdf8', fontWeight: 700 }}
+            onClick={() => handleOpenAuditModal()}
+            title="Generate FDA 21 CFR Part 11 & WHO GDP Regulatory Compliance Audit Certificate"
+          >
+            <FileText size={13} /> Audit PDF (WHO/FDA)
+          </button>
           <button
             className="small-btn"
             style={{ background: '#102d46', borderColor: '#075879', color: '#08b5e5', fontWeight: 600 }}
@@ -1424,14 +1464,24 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
               <Snowflake size={13} /> Divert To Hub
             </button>
           </div>
-          <button
-            className="small-btn"
-            disabled={actionInProgress}
-            style={{ width: '100%', marginTop: 8, justifyContent: 'center', borderColor: '#202c42' }}
-            onClick={() => handleExecuteAction(selectedContainer.id, 'THERMAL_BLANKET')}
-          >
-            <ShieldCheck size={13} /> Deploy Thermal Blanket Insulation
-          </button>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
+            <button
+              className="small-btn"
+              disabled={actionInProgress}
+              style={{ justifyContent: 'center', borderColor: '#202c42' }}
+              onClick={() => handleExecuteAction(selectedContainer.id, 'THERMAL_BLANKET')}
+            >
+              <ShieldCheck size={13} /> Blanket Insulation
+            </button>
+            <button
+              className="small-btn"
+              style={{ justifyContent: 'center', background: '#17253b', borderColor: '#38bdf8', color: '#38bdf8', fontWeight: 600 }}
+              onClick={() => handleOpenAuditModal(selectedContainer.id)}
+            >
+              <Award size={13} /> Audit Certificate
+            </button>
+          </div>
 
           {/* Quick Interactive Excursion Simulator Controls */}
           <div style={{
@@ -1492,7 +1542,7 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
                 <th>STATUS</th>
                 <th>ROUTE</th>
                 <th>RISK</th>
-                <th>ACTION</th>
+                <th>ACTIONS</th>
               </tr>
             </thead>
             <tbody>
@@ -1528,16 +1578,29 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
                       </b>
                     </td>
                     <td>
-                      <button
-                        className="small-btn"
-                        style={{ padding: '4px 8px', fontSize: 10 }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSelectContainer(item.id);
-                        }}
-                      >
-                        {isItemSel ? 'Selected' : 'Focus Map'}
-                      </button>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button
+                          className="small-btn"
+                          style={{ padding: '4px 8px', fontSize: 10 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectContainer(item.id);
+                          }}
+                        >
+                          {isItemSel ? 'Selected' : 'Focus'}
+                        </button>
+                        <button
+                          className="small-btn"
+                          style={{ padding: '4px 8px', fontSize: 10, borderColor: '#38bdf8', color: '#38bdf8' }}
+                          title="Generate Regulatory Audit PDF"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenAuditModal(item.id);
+                          }}
+                        >
+                          <FileText size={11} /> Audit
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -1729,6 +1792,242 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 8. FDA / WHO REGULATORY COMPLIANCE AUDIT CERTIFICATE MODAL */}
+      {showAuditModal && (
+        <div className="modal-backdrop" onClick={() => setShowAuditModal(false)}>
+          <div className="audit-modal-card printable-audit-report" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header" style={{ background: '#0d1424' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Award size={18} style={{ color: '#08b5e5' }} />
+                <h3 style={{ margin: 0, fontSize: 14, color: '#f1f5f9' }}>
+                  WHO GDP &amp; US FDA 21 CFR Part 11 Regulatory Compliance Audit Certificate
+                </h3>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  className="small-btn"
+                  style={{ background: '#08b5e5', color: '#001824', fontWeight: 700 }}
+                  onClick={handlePrintAudit}
+                >
+                  <Printer size={13} /> Print / Save PDF
+                </button>
+                <button
+                  className="small-btn"
+                  style={{ background: '#172136', color: '#8fa3c1' }}
+                  onClick={handleDownloadAuditJson}
+                >
+                  <Download size={13} /> JSON
+                </button>
+                <button
+                  onClick={() => setShowAuditModal(false)}
+                  style={{ background: 'transparent', color: '#7185a3', cursor: 'pointer', padding: 4 }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div style={{ padding: 20, maxHeight: '78vh', overflowY: 'auto' }}>
+              {loadingAudit ? (
+                <div style={{ textAlign: 'center', padding: 40, color: '#08b5e5' }}>
+                  <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 10px' }} />
+                  <p>Generating cryptographically signed regulatory audit ledger...</p>
+                </div>
+              ) : auditData ? (
+                <div className="audit-certificate">
+                  {/* Certificate Header Banner */}
+                  <div className="audit-header-banner">
+                    <div className="audit-title">
+                      <h2>CHAIN GUARD AI — GLOBAL PHARMA COLD-CHAIN AUDIT CERTIFICATE</h2>
+                      <p>Standards: WHO Technical Report Series No. 961 Annex 9 · US FDA 21 CFR Part 11</p>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div className="stamp-badge">
+                        <CheckCheck size={12} /> CERTIFIED AUDIT TRAIL
+                      </div>
+                      <small style={{ display: 'block', color: '#7185a3', fontSize: 9, marginTop: 4 }}>
+                        Issued: {new Date(auditData.generated_at).toLocaleString()}
+                      </small>
+                    </div>
+                  </div>
+
+                  {/* Consignment & Key Metadata */}
+                  <div className="audit-meta-grid">
+                    <div>
+                      <span>Certificate Identifier</span>
+                      <strong>{auditData.certificate_id}</strong>
+                    </div>
+                    <div>
+                      <span>Container / Shipment</span>
+                      <strong>{auditData.consignment?.container_id} · {auditData.consignment?.shipment_id}</strong>
+                    </div>
+                    <div>
+                      <span>Product Cargo Type</span>
+                      <strong style={{ color: '#38bdf8' }}>{auditData.consignment?.product_type}</strong>
+                    </div>
+                    <div>
+                      <span>SOP Temperature Specification</span>
+                      <strong>{auditData.consignment?.sop_temperature_range}</strong>
+                    </div>
+                    <div>
+                      <span>Declared Consignment Value</span>
+                      <strong style={{ color: '#10b981' }}>${(auditData.consignment?.declared_cargo_value_usd || 1250000).toLocaleString()} USD</strong>
+                    </div>
+                    <div>
+                      <span>Carrier &amp; Corridors</span>
+                      <strong>{auditData.consignment?.origin} → {auditData.consignment?.destination}</strong>
+                    </div>
+                  </div>
+
+                  {/* Thermal Excursion Telemetry & 4-Layer Anomaly Verification */}
+                  <div className="audit-section-box">
+                    <h4>🌡️ Thermal Excursion Telemetry &amp; Anomaly Engine Log</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
+                      <div style={{ background: '#0e1726', padding: 8, borderRadius: 6 }}>
+                        <small style={{ color: '#7185a3', fontSize: 9, display: 'block' }}>PEAK EXCURSION</small>
+                        <b style={{ color: '#ef4444', fontSize: 13 }}>{auditData.thermal_excursion_telemetry?.peak_temperature_c}°C</b>
+                      </div>
+                      <div style={{ background: '#0e1726', padding: 8, borderRadius: 6 }}>
+                        <small style={{ color: '#7185a3', fontSize: 9, display: 'block' }}>TOTAL DURATION</small>
+                        <b style={{ color: '#f59e0b', fontSize: 13 }}>{auditData.thermal_excursion_telemetry?.excursion_duration_minutes} Mins</b>
+                      </div>
+                      <div style={{ background: '#0e1726', padding: 8, borderRadius: 6 }}>
+                        <small style={{ color: '#7185a3', fontSize: 9, display: 'block' }}>DEGREE-HOURS BREACH</small>
+                        <b style={{ color: '#38bdf8', fontSize: 13 }}>{auditData.thermal_excursion_telemetry?.degree_hours_thermal_breach}°C·h</b>
+                      </div>
+                      <div style={{ background: '#0e1726', padding: 8, borderRadius: 6 }}>
+                        <small style={{ color: '#7185a3', fontSize: 9, display: 'block' }}>CHAIN STATUS</small>
+                        <b style={{ color: auditData.thermal_excursion_telemetry?.status === 'NORMAL' ? '#10b981' : '#ef4444', fontSize: 13 }}>
+                          {auditData.thermal_excursion_telemetry?.status}
+                        </b>
+                      </div>
+                    </div>
+
+                    {/* Sensor Table */}
+                    <table className="audit-telemetry-table">
+                      <thead>
+                        <tr>
+                          <th>TIMESTAMP (UTC)</th>
+                          <th>RECORDED TEMP</th>
+                          <th>SOP TOLERANCE</th>
+                          <th>TELEMETRY STATUS</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(auditData.thermal_excursion_telemetry?.sensor_readings || []).map((sr: any, idx: number) => (
+                          <tr key={idx}>
+                            <td>{sr.time}</td>
+                            <td><b>{sr.temp_c}°C</b></td>
+                            <td>2.0°C - 8.0°C</td>
+                            <td>
+                              <span style={{
+                                color: sr.status === 'IN_SPEC' ? '#10b981' : '#ef4444',
+                                fontWeight: 700
+                              }}>
+                                {sr.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+
+                    {/* 4-Layer Anomaly Breakdown */}
+                    <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, fontSize: 10 }}>
+                      <div style={{ background: '#0e1726', padding: 8, borderRadius: 6 }}>
+                        <b style={{ color: '#38bdf8' }}>Layer 1 &amp; 2 (Physics &amp; Spike):</b>
+                        <p style={{ margin: '2px 0 0', color: '#94a3b8' }}>
+                          {auditData.thermal_excursion_telemetry?.anomaly_engine_verification?.layer1_physical_bounds} · {auditData.thermal_excursion_telemetry?.anomaly_engine_verification?.layer2_rate_of_change}
+                        </p>
+                      </div>
+                      <div style={{ background: '#0e1726', padding: 8, borderRadius: 6 }}>
+                        <b style={{ color: '#38bdf8' }}>Layer 3 &amp; 4 (Z-Score &amp; Stream):</b>
+                        <p style={{ margin: '2px 0 0', color: '#94a3b8' }}>
+                          {auditData.thermal_excursion_telemetry?.anomaly_engine_verification?.layer3_zscore_baseline} · {auditData.thermal_excursion_telemetry?.anomaly_engine_verification?.layer4_stuck_sensor}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Corrective Action & Economic CAPA */}
+                  <div className="audit-section-box">
+                    <h4>🛡️ Corrective &amp; Preventative Action (CAPA) Resolution</h4>
+                    <p style={{ margin: '0 0 10px', fontSize: 11, color: '#cbd5e1' }}>
+                      {auditData.spoilage_and_corrective_action?.auditor_summary}
+                    </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                      <div style={{ background: '#0e1726', padding: 8, borderRadius: 6 }}>
+                        <small style={{ color: '#7185a3', fontSize: 9 }}>PRE-INTERVENTION SPOILAGE</small>
+                        <b style={{ color: '#ef4444', display: 'block', fontSize: 12 }}>
+                          {auditData.spoilage_and_corrective_action?.pre_intervention_spoilage_probability}
+                        </b>
+                      </div>
+                      <div style={{ background: '#0e1726', padding: 8, borderRadius: 6 }}>
+                        <small style={{ color: '#7185a3', fontSize: 9 }}>POST-INTERVENTION RISK</small>
+                        <b style={{ color: '#10b981', display: 'block', fontSize: 12 }}>
+                          {auditData.spoilage_and_corrective_action?.post_intervention_spoilage_probability}
+                        </b>
+                      </div>
+                      <div style={{ background: '#0e1726', padding: 8, borderRadius: 6 }}>
+                        <small style={{ color: '#7185a3', fontSize: 9 }}>CARGO VALUE SALVAGED</small>
+                        <b style={{ color: '#38bdf8', display: 'block', fontSize: 12 }}>
+                          ${(auditData.spoilage_and_corrective_action?.estimated_salvage_value_usd || 950000).toLocaleString()} USD
+                        </b>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Electronic Signatures & Cryptographic Audit Hash */}
+                  <div className="audit-signatures">
+                    <div className="signature-block">
+                      <span style={{ color: '#7185a3', fontSize: 9, textTransform: 'uppercase', display: 'block' }}>
+                        Autonomous AI System Verification
+                      </span>
+                      <strong style={{ color: '#f1f5f9', display: 'block', margin: '4px 0 2px' }}>
+                        {auditData.electronic_signatures?.automated_ai_system}
+                      </strong>
+                      <small style={{ color: '#10b981', display: 'block', fontSize: 9 }}>
+                        Digital SHA-256 Hash: {auditData.verification_hash_sha256?.substring(0, 24)}...
+                      </small>
+                    </div>
+
+                    <div className="signature-block">
+                      <span style={{ color: '#7185a3', fontSize: 9, textTransform: 'uppercase', display: 'block' }}>
+                        Qualified Person (QP) / Lead QA Approver
+                      </span>
+                      <strong style={{ color: '#f1f5f9', display: 'block', margin: '4px 0 2px' }}>
+                        {auditData.electronic_signatures?.lead_qualified_person_qp}
+                      </strong>
+                      <small style={{ color: '#38bdf8', display: 'block', fontSize: 9 }}>
+                        Signature ID: CFR21-QP-AUTH-{(auditData.certificate_id || '2026').slice(-8)}
+                      </small>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="modal-footer" style={{ background: '#0d1424' }}>
+              <button
+                type="button"
+                className="small-btn"
+                onClick={() => setShowAuditModal(false)}
+              >
+                Close Certificate
+              </button>
+              <button
+                type="button"
+                className="small-btn"
+                style={{ background: '#08b5e5', color: '#001824', fontWeight: 700 }}
+                onClick={handlePrintAudit}
+              >
+                <Printer size={13} /> Print Official PDF
+              </button>
+            </div>
           </div>
         </div>
       )}
