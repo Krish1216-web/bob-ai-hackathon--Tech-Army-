@@ -347,6 +347,8 @@ function Panel({ children, className = '', style }: { children: ReactNode; class
 }
 
 function ControlTower({ navigate, fleetUtilisation, pendingActions, disruptions, kpis }: { navigate: (to: string) => void; fleetUtilisation: string; pendingActions: number; disruptions: any[]; kpis: any }) {
+  const [towerView, setTowerView] = useState<'graph' | 'satellite'>('graph');
+
   return (
     <div className="page-stack">
       <div className="risk-banner">
@@ -373,14 +375,189 @@ function ControlTower({ navigate, fleetUtilisation, pendingActions, disruptions,
 
       <div className="tower-grid">
         <Panel className="map-panel">
-          <PageIntro title="Network Risk Map" subtitle="India · Asia · Europe logistics network" right={<span className="live-label"><i className="dot green" /> Live network</span>} />
-          <RiskMap />
-          <div className="map-legend">
-            <span><i className="line red-line" />Disrupted (Mumbai)</span>
-            <span><i className="line cyan-line" />Alternative (Mundra)</span>
-            <span><i className="line blue-line" />Active</span>
-            <span><i className="node yellow-node" />Warning</span>
-          </div>
+          <PageIntro
+            title="Network Risk Map"
+            subtitle="India · Asia · Europe logistics network"
+            right={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div className="mode-toggle-group">
+                  <button
+                    className={`mode-toggle-btn ${towerView === 'graph' ? 'active' : ''}`}
+                    onClick={() => setTowerView('graph')}
+                    style={{ padding: '3px 8px', fontSize: 10 }}
+                  >
+                    📊 Topology
+                  </button>
+                  <button
+                    className={`mode-toggle-btn ${towerView === 'satellite' ? 'active' : ''}`}
+                    onClick={() => setTowerView('satellite')}
+                    style={{ padding: '3px 8px', fontSize: 10 }}
+                  >
+                    🛰️ Satellite Map
+                  </button>
+                </div>
+                <span className="live-label"><i className="dot green" /> Live network</span>
+              </div>
+            }
+          />
+
+          {towerView === 'graph' ? (
+            <>
+              <RiskMap />
+              <div className="map-legend">
+                <span><i className="line red-line" />Disrupted (Mumbai)</span>
+                <span><i className="line cyan-line" />Alternative (Mundra)</span>
+                <span><i className="line blue-line" />Active</span>
+                <span><i className="node yellow-node" />Warning</span>
+              </div>
+            </>
+          ) : (
+            <div style={{ marginTop: 8 }}>
+              <LiveColdMap
+                containers={[
+                  {
+                    id: 'SHP-1042',
+                    container_id: 'CTN-8801',
+                    shipment_id: 'SHP-1042',
+                    cargo: 'Vaccines (Biologics)',
+                    product: 'Pfizer COVID-19 Vaccine Vials',
+                    asset: 'TRK-204',
+                    lat: 18.9401,
+                    lng: 72.8347,
+                    origin: 'Mumbai JNPT',
+                    destination: 'Frankfurt Hub',
+                    origin_coords: [18.9401, 72.8347],
+                    dest_coords: [50.1109, 8.6821],
+                    temp: '10.3°C',
+                    temp_val: 10.3,
+                    peak_temp: '11.2°C',
+                    peak_temp_val: 11.2,
+                    safe_min_temp: 2.0,
+                    safe_max_temp: 8.0,
+                    required_range: '2–8°C',
+                    sop_range: '2.0°C to 8.0°C',
+                    excursion_duration_mins: 45,
+                    status: 'CRITICAL',
+                    severity: 'CRITICAL',
+                    risk_probability: 0.94,
+                    is_anomaly: true,
+                    anomaly_layer: 'L1_BOUNDS',
+                    nearest_hub: {
+                      id: 'HUB-PUNE-01',
+                      name: 'Pune Pharma Cold Hub',
+                      location: 'Pune',
+                      lat: 18.5204,
+                      lng: 73.8567,
+                      distance_km: 74,
+                      eta_minutes: 58,
+                      available_tons: 140,
+                      status: 'AVAILABLE'
+                    },
+                    recommended_action: 'DIVERT_TO_COLD_HUB',
+                    action_description: 'Reroute via Mundra to avoid Mumbai strike.',
+                    cargo_value: '$1,250,000'
+                  },
+                  {
+                    id: 'SHP-1051',
+                    container_id: 'CTN-9204',
+                    shipment_id: 'SHP-1051',
+                    cargo: 'Pharmaceuticals',
+                    product: 'Pharmaceutical Consignment',
+                    asset: 'VES-802',
+                    lat: 13.0827,
+                    lng: 80.2707,
+                    origin: 'Chennai Port',
+                    destination: 'Singapore Port',
+                    origin_coords: [13.0827, 80.2707],
+                    dest_coords: [1.3521, 103.8198],
+                    temp: '4.8°C',
+                    temp_val: 4.8,
+                    peak_temp: '5.1°C',
+                    peak_temp_val: 5.1,
+                    safe_min_temp: 2.0,
+                    safe_max_temp: 8.0,
+                    required_range: '2–8°C',
+                    sop_range: '2.0°C to 8.0°C',
+                    excursion_duration_mins: 0,
+                    status: 'NORMAL',
+                    severity: 'NORMAL',
+                    risk_probability: 0.08,
+                    is_anomaly: false,
+                    anomaly_layer: 'NONE',
+                    nearest_hub: {
+                      id: 'HUB-CHN-01',
+                      name: 'Chennai Port Reefer Station',
+                      location: 'Chennai',
+                      lat: 13.0827,
+                      lng: 80.2707,
+                      distance_km: 12,
+                      eta_minutes: 20,
+                      available_tons: 320,
+                      status: 'AVAILABLE'
+                    },
+                    recommended_action: 'CONTINUE_MONITORING',
+                    action_description: 'Operating nominally.',
+                    cargo_value: '$740,000'
+                  },
+                  {
+                    id: 'SHP-1063',
+                    container_id: 'CTN-4421',
+                    shipment_id: 'SHP-1063',
+                    cargo: 'Electronics / Devices',
+                    product: 'High-Value Semiconductors',
+                    asset: 'TRK-201',
+                    lat: 28.6139,
+                    lng: 77.2090,
+                    origin: 'Delhi Terminal',
+                    destination: 'Frankfurt Hub',
+                    origin_coords: [28.6139, 77.2090],
+                    dest_coords: [50.1109, 8.6821],
+                    temp: '5.2°C',
+                    temp_val: 5.2,
+                    peak_temp: '5.4°C',
+                    peak_temp_val: 5.4,
+                    safe_min_temp: 2.0,
+                    safe_max_temp: 8.0,
+                    required_range: '2–8°C',
+                    sop_range: '2.0°C to 8.0°C',
+                    excursion_duration_mins: 0,
+                    status: 'NORMAL',
+                    severity: 'NORMAL',
+                    risk_probability: 0.12,
+                    is_anomaly: false,
+                    anomaly_layer: 'NONE',
+                    nearest_hub: {
+                      id: 'HUB-DEL-01',
+                      name: 'Delhi NCR Cargo Cold Hub',
+                      location: 'Delhi',
+                      lat: 28.5562,
+                      lng: 77.1000,
+                      distance_km: 18,
+                      eta_minutes: 24,
+                      available_tons: 180,
+                      status: 'AVAILABLE'
+                    },
+                    recommended_action: 'CONTINUE_MONITORING',
+                    action_description: 'Transit on schedule.',
+                    cargo_value: '$510,000'
+                  }
+                ]}
+                hubs={[
+                  { id: 'HUB-PUNE-01', name: 'Pune Pharma Cold Hub', location: 'Pune', lat: 18.5204, lng: 73.8567, temp_zones: ['2-8°C'], capacity_tons: 200, available_tons: 140, occupied_pct: 30, status: 'OPERATIONAL' },
+                  { id: 'HUB-MUN-01', name: 'Mundra Port Cold Terminal', location: 'Mundra', lat: 22.8395, lng: 69.7214, temp_zones: ['2-8°C', '-20°C'], capacity_tons: 350, available_tons: 210, occupied_pct: 40, status: 'OPERATIONAL' },
+                  { id: 'HUB-CHN-01', name: 'Chennai Port Reefer Station', location: 'Chennai', lat: 13.0827, lng: 80.2707, temp_zones: ['-20°C', '2-8°C'], capacity_tons: 400, available_tons: 320, occupied_pct: 20, status: 'OPERATIONAL' },
+                  { id: 'HUB-DEL-01', name: 'Delhi NCR Cargo Cold Hub', location: 'Delhi', lat: 28.5562, lng: 77.1000, temp_zones: ['2-8°C'], capacity_tons: 250, available_tons: 180, occupied_pct: 28, status: 'OPERATIONAL' }
+                ]}
+                routes={[
+                  { shipment_id: 'SHP-1042', container_id: 'SHP-1042', status: 'CRITICAL', origin: 'Mumbai', destination: 'Frankfurt', points: [[18.9401, 72.8347], [22.8395, 69.7214], [50.1109, 8.6821]], diversion_points: [[18.9401, 72.8347], [18.5204, 73.8567]] },
+                  { shipment_id: 'SHP-1051', container_id: 'SHP-1051', status: 'NORMAL', origin: 'Chennai', destination: 'Singapore', points: [[13.0827, 80.2707], [1.3521, 103.8198]] },
+                  { shipment_id: 'SHP-1063', container_id: 'SHP-1063', status: 'NORMAL', origin: 'Delhi', destination: 'Frankfurt', points: [[28.6139, 77.2090], [50.1109, 8.6821]] }
+                ]}
+                selectedContainerId="SHP-1042"
+                onSelectContainer={() => navigate('/cold-chain')}
+              />
+            </div>
+          )}
         </Panel>
 
         <Panel className="disruptions-panel">

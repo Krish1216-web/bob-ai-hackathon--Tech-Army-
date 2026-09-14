@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
-import { Maximize2, Crosshair, RefreshCw, Warehouse, Truck, AlertTriangle } from 'lucide-react';
+import { Maximize2, Crosshair, RefreshCw, Warehouse, Truck, AlertTriangle, Globe, Map } from 'lucide-react';
 
 export interface ColdContainerMapItem {
   id: string;
@@ -91,6 +91,8 @@ export const LiveColdMap: React.FC<LiveColdMapProps> = ({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const [mapMode, setMapMode] = useState<'dark' | 'satellite'>('dark');
 
   // Initialize Map
   useEffect(() => {
@@ -103,11 +105,13 @@ export const LiveColdMap: React.FC<LiveColdMapProps> = ({
       attributionControl: false,
     });
 
-    // Dark CartoDB basemap with high contrast styling
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    // Default CartoDB Dark basemap
+    const darkTile = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 18,
       subdomains: 'abcd',
+      attribution: '&copy; CARTO &copy; OpenStreetMap'
     }).addTo(map);
+    tileLayerRef.current = darkTile;
 
     const layerGroup = L.layerGroup().addTo(map);
     layerGroupRef.current = layerGroup;
@@ -126,6 +130,31 @@ export const LiveColdMap: React.FC<LiveColdMapProps> = ({
       mapInstanceRef.current = null;
     };
   }, []);
+
+  // Switch Tile Layer when mapMode changes
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (tileLayerRef.current) {
+      map.removeLayer(tileLayerRef.current);
+    }
+
+    if (mapMode === 'satellite') {
+      const satTile = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19,
+        attribution: '&copy; Esri World Imagery'
+      }).addTo(map);
+      tileLayerRef.current = satTile;
+    } else {
+      const darkTile = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 18,
+        subdomains: 'abcd',
+        attribution: '&copy; CARTO &copy; OpenStreetMap'
+      }).addTo(map);
+      tileLayerRef.current = darkTile;
+    }
+  }, [mapMode]);
 
   // Update Layers when data changes
   useEffect(() => {
@@ -373,6 +402,19 @@ export const LiveColdMap: React.FC<LiveColdMapProps> = ({
 
       {/* Map Control Buttons */}
       <div className="livecold-overlay-controls">
+        <button
+          className={`livecold-ctrl-btn ${mapMode === 'satellite' ? 'active' : ''}`}
+          onClick={() => setMapMode((m) => (m === 'satellite' ? 'dark' : 'satellite'))}
+          title="Toggle Satellite vs Vector Basemap"
+          style={{
+            background: mapMode === 'satellite' ? '#08B5E5' : undefined,
+            color: mapMode === 'satellite' ? '#001824' : undefined,
+            fontWeight: mapMode === 'satellite' ? 700 : undefined
+          }}
+        >
+          <Globe size={13} />
+          <span>{mapMode === 'satellite' ? '🛰️ Satellite View' : '🗺️ Dark Map'}</span>
+        </button>
         <button
           className="livecold-ctrl-btn"
           onClick={handleFocusSelected}
