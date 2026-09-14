@@ -51,4 +51,11 @@ Thumbs.db
 # Reference Extracts
 cold-chain-ref/
 supply-chain-control-tower-main/
+
+# Local packaging / duplicate folders and generated archives
+login-ui-supabase-package.zip
+login-ui-supabase-package-extract/
+bob-ai-hackathon--Tech-Army--main/
+*.zip
+
 .vercel
