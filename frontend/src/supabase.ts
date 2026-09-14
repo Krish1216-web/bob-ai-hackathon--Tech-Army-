@@ -31,7 +31,7 @@ export async function signUpWithPassword(email: string, password: string, fullNa
     email,
     password,
     options: {
-      emailRedirectTo: ${window.location.origin}/,
+      emailRedirectTo: `${window.location.origin}/`,
       data: {
         full_name: fullName || email.split("@")[0]
       }
@@ -47,7 +47,7 @@ export async function signInWithGoogle() {
   return await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: ${window.location.origin}/
+      redirectTo: `${window.location.origin}/`
     }
   });
 }

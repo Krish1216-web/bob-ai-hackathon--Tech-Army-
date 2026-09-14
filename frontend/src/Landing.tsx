@@ -39,7 +39,7 @@ function AlertTriangleIcon(props: { size?: number }) {
   return <Ship {...props} />;
 }
 
-export default function Landing({ onLaunch }: { onLaunch: () => void }) {
+export default function Landing({ onLaunch, onSignIn }: { onLaunch: () => void; onSignIn?: () => void }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeTestimonial, setActiveTestimonial] = useState(0);
 
@@ -52,6 +52,14 @@ export default function Landing({ onLaunch }: { onLaunch: () => void }) {
   // Dynamic calculations based on adjustable slider
   const calcExposure = (hours: number) => ((hours / 72) * 1.25).toFixed(2);
   const calcAffected = (hours: number) => Math.round((hours / 72) * 8);
+
+  const handleAuthClick = () => {
+    if (onSignIn) {
+      onSignIn();
+    } else {
+      onLaunch();
+    }
+  };
 
   return (
     <div className="landing">
@@ -69,7 +77,7 @@ export default function Landing({ onLaunch }: { onLaunch: () => void }) {
             <a href="#voices">Customers</a>
           </div>
           <div className="landing-nav-cta">
-            <button className="lnav-login" onClick={onLaunch}>Sign in</button>
+            <button className="lnav-login" onClick={handleAuthClick}>Sign in</button>
             <button className="lnav-launch" onClick={onLaunch}>Launch Platform <ArrowRight size={15} /></button>
           </div>
           <button className="lnav-mobile-toggle" onClick={() => setMobileOpen(!mobileOpen)}>
@@ -82,6 +90,7 @@ export default function Landing({ onLaunch }: { onLaunch: () => void }) {
             <a href="#how" onClick={() => setMobileOpen(false)}>How It Works</a>
             <a href="#why" onClick={() => setMobileOpen(false)}>Why ChainGuard</a>
             <a href="#voices" onClick={() => setMobileOpen(false)}>Customers</a>
+            <button className="lnav-login" style={{ marginBottom: 6 }} onClick={() => { setMobileOpen(false); handleAuthClick(); }}>Sign In</button>
             <button onClick={() => { setMobileOpen(false); onLaunch(); }}>Launch Platform <ArrowRight size={15} /></button>
           </div>
         )}
