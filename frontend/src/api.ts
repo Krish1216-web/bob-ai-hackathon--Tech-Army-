@@ -1,4 +1,5 @@
 import { Shipment, AIAction, Severity } from './data';
+import { executeCopilotQuery } from './copilotEngine';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
@@ -158,16 +159,26 @@ export const api = {
     });
   },
 
-  // Copilot Query (Multi-LLM / RAG)
+  // Copilot Query (Multi-LLM / RAG / Direct Client Inference)
   async queryCopilot(query: string, options?: { api_key?: string; provider?: string; conversation_history?: any[] }) {
-    return await fetchJson<any>('/copilot/query', {
-      method: 'POST',
-      body: JSON.stringify({
-        query,
-        api_key: options?.api_key || undefined,
-        provider: options?.provider || 'auto',
-        conversation_history: options?.conversation_history || []
-      })
-    });
+    try {
+      const backendRes = await fetchJson<any>('/copilot/query', {
+        method: 'POST',
+        body: JSON.stringify({
+          query,
+          api_key: options?.api_key || undefined,
+          provider: options?.provider || 'auto',
+          conversation_history: options?.conversation_history || []
+        })
+      });
+      if (backendRes && backendRes.answer) {
+        return backendRes;
+      }
+    } catch (err) {
+      console.warn('Backend Copilot API unavailable, running client generative LLM engine:', err);
+    }
+
+    // Direct Client-Side LLM & Dynamic RAG Generator
+    return await executeCopilotQuery(query, options);
   }
 };
