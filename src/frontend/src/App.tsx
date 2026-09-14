@@ -3167,7 +3167,7 @@ function CopilotPage({ navigate, notify }: { navigate?: (to: string) => void; no
     return localStorage.getItem('chainguard_llm_provider') || 'gemini';
   });
   const [apiKey, setApiKey] = useState<string>(() => {
-    return localStorage.getItem('chainguard_llm_key') || '';
+    return localStorage.getItem('chainguard_gemini_key') || localStorage.getItem('chainguard_llm_key') || (import.meta as any).env?.VITE_GEMINI_API_KEY || '';
   });
 
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -3197,6 +3197,9 @@ function CopilotPage({ navigate, notify }: { navigate?: (to: string) => void; no
     setApiKey(newKey);
     localStorage.setItem('chainguard_llm_provider', newProvider);
     localStorage.setItem('chainguard_llm_key', newKey);
+    if (newKey.startsWith('AIza') || newProvider === 'gemini') {
+      localStorage.setItem('chainguard_gemini_key', newKey);
+    }
     if (notify) notify(`AI model set to ${newProvider.toUpperCase()}`, 'success');
   };
 
@@ -3629,7 +3632,7 @@ function Copilot({ onClose, navigate }: { onClose: () => void; navigate?: (to: s
     return localStorage.getItem('chainguard_llm_provider') || 'gemini';
   });
   const [apiKey, setApiKey] = useState<string>(() => {
-    return localStorage.getItem('chainguard_llm_key') || '';
+    return localStorage.getItem('chainguard_gemini_key') || localStorage.getItem('chainguard_llm_key') || (import.meta as any).env?.VITE_GEMINI_API_KEY || '';
   });
 
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -3659,6 +3662,9 @@ function Copilot({ onClose, navigate }: { onClose: () => void; navigate?: (to: s
     setApiKey(newKey);
     localStorage.setItem('chainguard_llm_provider', newProvider);
     localStorage.setItem('chainguard_llm_key', newKey);
+    if (newKey.startsWith('AIza') || newProvider === 'gemini') {
+      localStorage.setItem('chainguard_gemini_key', newKey);
+    }
   };
 
   const handleAsk = async (queryText: string) => {

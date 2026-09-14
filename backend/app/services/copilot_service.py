@@ -121,42 +121,44 @@ CERTIFIED COLD STORAGE HUBS:
 
         # 3. Multi-LLM Execution Pipeline
 
-        # A. Google Gemini API (gemini-1.5-flash / gemini-pro)
-        gemini_key = api_key if (provider == "gemini" and api_key) else settings.GEMINI_API_KEY
+        # A. Google Gemini API (Multi-Model Resilient: 1.5 Flash, 2.0 Flash, Pro)
+        gemini_key = api_key if (provider == "gemini" and api_key) else (api_key or settings.GEMINI_API_KEY)
         if (provider in ["gemini", "auto"]) and gemini_key:
-            try:
-                gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
-                gemini_payload = {
-                    "contents": [
-                        {
-                            "parts": [
-                                {"text": f"{system_prompt}\n\nUser Question: {q_raw}"}
-                            ]
+            models = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-pro", "gemini-1.5-pro"]
+            for model in models:
+                try:
+                    gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={gemini_key}"
+                    gemini_payload = {
+                        "contents": [
+                            {
+                                "parts": [
+                                    {"text": f"{system_prompt}\n\nUser Question: {q_raw}\n\nAnswer in rich Markdown with actionable supply chain intelligence."}
+                                ]
+                            }
+                        ],
+                        "generationConfig": {
+                            "temperature": 0.7,
+                            "maxOutputTokens": 1000
                         }
-                    ],
-                    "generationConfig": {
-                        "temperature": 0.4,
-                        "maxOutputTokens": 600
                     }
-                }
-                resp = requests.post(gemini_url, json=gemini_payload, timeout=6.0)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    candidates = data.get("candidates", [])
-                    if candidates:
-                        parts = candidates[0].get("content", {}).get("parts", [])
-                        if parts and "text" in parts[0]:
-                            generated = parts[0]["text"].strip()
-                            return CopilotQueryResponse(
-                                query=q_raw,
-                                answer=generated,
-                                confidence=0.98,
-                                sources=["Google Gemini 1.5 Flash LLM", "Live SQLite/PostgreSQL RAG", "IoT Telemetry DB"],
-                                suggested_actions=CopilotService._extract_suggested_actions(q_raw),
-                                provider_used="Google Gemini 1.5 Flash (Live LLM)"
-                            )
-            except Exception as e:
-                logger.warning(f"Gemini LLM call failed: {e}")
+                    resp = requests.post(gemini_url, json=gemini_payload, timeout=7.0)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        candidates = data.get("candidates", [])
+                        if candidates:
+                            parts = candidates[0].get("content", {}).get("parts", [])
+                            if parts and "text" in parts[0]:
+                                generated = parts[0]["text"].strip()
+                                return CopilotQueryResponse(
+                                    query=q_raw,
+                                    answer=generated,
+                                    confidence=0.99,
+                                    sources=[f"Google {model.title()} (Live LLM)", "Live PostgreSQL/SQLite RAG", "IoT Sensor Stream"],
+                                    suggested_actions=CopilotService._extract_suggested_actions(q_raw),
+                                    provider_used=f"Google Gemini ({model})"
+                                )
+                except Exception as e:
+                    logger.warning(f"Gemini LLM model {model} attempt failed: {e}")
 
         # B. Groq API (Llama 3.3 70B / Llama 3.1 8B)
         groq_key = api_key if (provider == "groq" and api_key) else settings.GROQ_API_KEY

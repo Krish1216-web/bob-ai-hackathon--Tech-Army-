@@ -5,20 +5,22 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 
 async function fetchJson<T>(endpoint: string, options?: RequestInit): Promise<T | null> {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
     const res = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
+      signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
         ...(options?.headers || {})
       }
     });
+    clearTimeout(timeoutId);
     if (!res.ok) {
-      console.warn(`API error on ${endpoint}: ${res.statusText}`);
       return null;
     }
     return await res.json();
   } catch (err) {
-    console.warn(`API call failed for ${endpoint}, using fallback state:`, err);
     return null;
   }
 }
@@ -159,8 +161,13 @@ export const api = {
     });
   },
 
-  // Copilot Query (Multi-LLM / RAG / Direct Client Inference)
+  // Copilot Query (Direct Gemini / Multi-LLM / Dynamic RAG)
   async queryCopilot(query: string, options?: { api_key?: string; provider?: string; conversation_history?: any[] }) {
+    const directKey = options?.api_key || localStorage.getItem('chainguard_gemini_key') || localStorage.getItem('chainguard_llm_key');
+    if (directKey) {
+      return await executeCopilotQuery(query, { ...options, api_key: directKey });
+    }
+
     try {
       const backendRes = await fetchJson<any>('/copilot/query', {
         method: 'POST',
@@ -174,11 +181,10 @@ export const api = {
       if (backendRes && backendRes.answer) {
         return backendRes;
       }
-    } catch (err) {
-      console.warn('Backend Copilot API unavailable, running client generative LLM engine:', err);
+    } catch {
+      // ignore
     }
 
-    // Direct Client-Side LLM & Dynamic RAG Generator
     return await executeCopilotQuery(query, options);
   }
 };
