@@ -77,6 +77,7 @@ interface LiveColdMapProps {
   onExecuteRecovery?: (id: string, actionType: string) => void;
   onRefresh?: () => void;
   loading?: boolean;
+  initialMode?: 'dark' | 'satellite';
 }
 
 export const LiveColdMap: React.FC<LiveColdMapProps> = ({
@@ -87,12 +88,14 @@ export const LiveColdMap: React.FC<LiveColdMapProps> = ({
   onSelectContainer,
   onRefresh,
   loading = false,
+  initialMode = 'satellite',
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
-  const [mapMode, setMapMode] = useState<'dark' | 'satellite'>('dark');
+  const labelLayerRef = useRef<L.TileLayer | null>(null);
+  const [mapMode, setMapMode] = useState<'dark' | 'satellite'>(initialMode);
 
   // Initialize Map
   useEffect(() => {
@@ -101,31 +104,58 @@ export const LiveColdMap: React.FC<LiveColdMapProps> = ({
     const map = L.map(mapContainerRef.current, {
       center: [21.5, 76.5],
       zoom: 5,
-      zoomControl: false,
+      zoomControl: true,
       attributionControl: false,
     });
 
-    // Default CartoDB Dark basemap
-    const darkTile = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 18,
-      subdomains: 'abcd',
-      attribution: '&copy; CARTO &copy; OpenStreetMap'
-    }).addTo(map);
-    tileLayerRef.current = darkTile;
+    // Basemap according to initial mode
+    if (initialMode === 'satellite') {
+      const satTile = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19,
+        attribution: '&copy; Esri World Imagery'
+      }).addTo(map);
+      tileLayerRef.current = satTile;
+
+      const lblTile = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19,
+      }).addTo(map);
+      labelLayerRef.current = lblTile;
+    } else {
+      const darkTile = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 18,
+        subdomains: 'abcd',
+        attribution: '&copy; CARTO &copy; OpenStreetMap'
+      }).addTo(map);
+      tileLayerRef.current = darkTile;
+    }
 
     const layerGroup = L.layerGroup().addTo(map);
     layerGroupRef.current = layerGroup;
     mapInstanceRef.current = map;
 
-    // Force Leaflet to recalculate container bounds after DOM mount
-    const invalidateTimer = setTimeout(() => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.invalidateSize();
-      }
-    }, 150);
+    // Invalidate size on multiple animation frames to ensure 100% visibility
+    const timers = [50, 150, 400, 800].map(ms =>
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, ms)
+    );
+
+    // ResizeObserver to handle layout container changes
+    let resizeObserver: ResizeObserver | null = null;
+    if (window.ResizeObserver && mapContainerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      });
+      resizeObserver.observe(mapContainerRef.current);
+    }
 
     return () => {
-      clearTimeout(invalidateTimer);
+      timers.forEach(clearTimeout);
+      if (resizeObserver) resizeObserver.disconnect();
       map.remove();
       mapInstanceRef.current = null;
     };
@@ -138,6 +168,11 @@ export const LiveColdMap: React.FC<LiveColdMapProps> = ({
 
     if (tileLayerRef.current) {
       map.removeLayer(tileLayerRef.current);
+      tileLayerRef.current = null;
+    }
+    if (labelLayerRef.current) {
+      map.removeLayer(labelLayerRef.current);
+      labelLayerRef.current = null;
     }
 
     if (mapMode === 'satellite') {
@@ -146,6 +181,11 @@ export const LiveColdMap: React.FC<LiveColdMapProps> = ({
         attribution: '&copy; Esri World Imagery'
       }).addTo(map);
       tileLayerRef.current = satTile;
+
+      const lblTile = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19,
+      }).addTo(map);
+      labelLayerRef.current = lblTile;
     } else {
       const darkTile = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         maxZoom: 18,
@@ -154,6 +194,12 @@ export const LiveColdMap: React.FC<LiveColdMapProps> = ({
       }).addTo(map);
       tileLayerRef.current = darkTile;
     }
+
+    setTimeout(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    }, 100);
   }, [mapMode]);
 
   // Update Layers when data changes
