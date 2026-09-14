@@ -149,15 +149,25 @@ export default function Landing({ onLaunch, onSignIn }: { onLaunch: () => void; 
                     <div className="preview-kpi"><b className="cyan">$4.8M</b><span>Cargo at Risk</span></div>
                   </div>
                   <div className="preview-map">
-                    <svg viewBox="0 0 280 180" className="preview-svg">
-                      <rect width="280" height="180" fill="#101827" />
-                      <path className="route active-route" d="M95 120 L123 75 L190 38 L218 12" />
-                      <path className="route alt-route" d="M75 85 L218 12" />
-                      <path className="route disrupted-route" d="M95 120 L75 85" />
-                      <circle cx="95" cy="120" r="4" fill="#FF414D" />
-                      <circle cx="75" cy="85" r="4" fill="#08B5E5" />
-                      <circle cx="190" cy="38" r="4" fill="#168BFF" />
-                      <circle cx="218" cy="12" r="4" fill="#16C784" />
+                    <svg viewBox="0 0 400 160" className="preview-svg">
+                      <rect width="400" height="160" fill="#0d1525" rx="8" />
+                      <line x1="120" y1="110" x2="200" y2="50" stroke="#168BFF" strokeWidth="1.5" />
+                      <line x1="200" y1="50" x2="320" y2="30" stroke="#168BFF" strokeWidth="1.5" />
+                      <line x1="120" y1="110" x2="180" y2="140" stroke="#168BFF" strokeWidth="1.5" />
+                      {activeDisruption === 'mumbai' ? (
+                        <>
+                          <line x1="120" y1="110" x2="80" y2="70" stroke="#FF414D" strokeWidth="2" strokeDasharray="5 3" />
+                          <line x1="80" y1="70" x2="320" y2="30" stroke="#08B5E5" strokeWidth="1.5" strokeDasharray="4 3" />
+                        </>
+                      ) : (
+                        <line x1="180" y1="140" x2="320" y2="30" stroke="#FF8A00" strokeWidth="2" strokeDasharray="5 3" />
+                      )}
+                      {[[120,110,'red'],[80,70,'cyan'],[200,50,'blue'],[320,30,'green'],[180,140,'orange']].map(([x,y,c],i) => (
+                        <g key={i}>
+                          <circle cx={x as number} cy={y as number} r="6" fill="none" stroke={`var(--${c})`} opacity=".4" />
+                          <circle cx={x as number} cy={y as number} r="3" fill={`var(--${c})`} />
+                        </g>
+                      ))}
                     </svg>
                   </div>
                   <div className="preview-disruptions">

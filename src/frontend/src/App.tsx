@@ -383,11 +383,64 @@ function Header({
             <i>4</i>
           </button>
           {notifications && (
-            <div className="popover notifications">
-              <strong>Live Alerts</strong>
-              <p><span className="dot red" />2 critical shipments need review</p>
-              <p><span className="dot orange" />Mumbai Port Strike active (72h)</p>
-              <p><span className="dot cyan" />AI has 4 recommendations ready</p>
+            <div className="popover notifications" style={{ width: 340, padding: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #202c42' }}>
+                <strong style={{ fontSize: 13, color: '#f1f5f9' }}>🔔 Live Cold Chain &amp; Shipment Alerts</strong>
+                <span className="badge red" style={{ fontSize: 9 }}>3 Critical</span>
+              </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 360, overflowY: 'auto' }}>
+                {/* Item 1: CTN-8801 / SHP-1042 */}
+                <div style={{ background: '#17253b', borderLeft: '3px solid #ef4444', borderRadius: 6, padding: '8px 10px', fontSize: 11 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#f1f5f9' }}>
+                    <span>🚨 CTN-8801 (SHP-1042)</span>
+                    <span style={{ color: '#ef4444' }}>10.3°C</span>
+                  </div>
+                  <div style={{ color: '#38bdf8', fontSize: 10, margin: '2px 0' }}>📦 mRNA Vaccines ($1.25M) · Asset TRK-204</div>
+                  <div style={{ color: '#7185a3', fontSize: 10 }}>⏱ Excursion 45m (+2.3°C &gt; 8°C SOP) · Spoilage 94%</div>
+                  <div style={{ color: '#10b981', fontSize: 10, marginTop: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>📍 Hub: Navi Mumbai (14.2 km)</span>
+                    <a href="#/cold-chain" onClick={() => setNotifications(false)} style={{ color: '#08b5e5', fontWeight: 700, textDecoration: 'none' }}>View →</a>
+                  </div>
+                </div>
+
+                {/* Item 2: CTN-8804 / SHP-1051 */}
+                <div style={{ background: '#17253b', borderLeft: '3px solid #f59e0b', borderRadius: 6, padding: '8px 10px', fontSize: 11 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#f1f5f9' }}>
+                    <span>📈 CTN-8804 (SHP-1051)</span>
+                    <span style={{ color: '#f59e0b' }}>8.9°C</span>
+                  </div>
+                  <div style={{ color: '#38bdf8', fontSize: 10, margin: '2px 0' }}>📦 Biopharma ($740K) · Asset TRK-089</div>
+                  <div style={{ color: '#7185a3', fontSize: 10 }}>⚡ Rate-of-Change Spike (+2.4°C/hr) · Spoilage 68%</div>
+                  <div style={{ color: '#10b981', fontSize: 10, marginTop: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>📍 Hub: Bengaluru Inland (18.5 km)</span>
+                    <a href="#/cold-chain" onClick={() => setNotifications(false)} style={{ color: '#08b5e5', fontWeight: 700, textDecoration: 'none' }}>View →</a>
+                  </div>
+                </div>
+
+                {/* Item 3: CTN-8819 / SHP-1078 */}
+                <div style={{ background: '#17253b', borderLeft: '3px solid #38bdf8', borderRadius: 6, padding: '8px 10px', fontSize: 11 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#f1f5f9' }}>
+                    <span>❄️ CTN-8819 (SHP-1078)</span>
+                    <span style={{ color: '#38bdf8' }}>1.1°C</span>
+                  </div>
+                  <div style={{ color: '#38bdf8', fontSize: 10, margin: '2px 0' }}>📦 Insulin Biologics ($1.15M) · Asset TRK-114</div>
+                  <div style={{ color: '#7185a3', fontSize: 10 }}>❄ Sub-Zero Freeze Risk (&lt;2°C SOP Min) · Spoilage 88%</div>
+                  <div style={{ color: '#10b981', fontSize: 10, marginTop: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>📍 Hub: Pune Biopharma (6.4 km)</span>
+                    <a href="#/cold-chain" onClick={() => setNotifications(false)} style={{ color: '#08b5e5', fontWeight: 700, textDecoration: 'none' }}>View →</a>
+                  </div>
+                </div>
+
+                {/* Item 4: Macro Port Strike */}
+                <div style={{ background: '#17253b', borderLeft: '3px solid #f59e0b', borderRadius: 6, padding: '8px 10px', fontSize: 11 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#f1f5f9' }}>
+                    <span>⚠️ Mumbai Port Strike</span>
+                    <span style={{ color: '#f59e0b' }}>72h Delay</span>
+                  </div>
+                  <div style={{ color: '#7185a3', fontSize: 10, marginTop: 2 }}>JNPT Dock Strike affecting 3 cold-chain reefers</div>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -1266,6 +1319,181 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
     } catch {
       return [];
     }
+  });
+
+  // Dispatch Notifications State & All Critical Conditions
+  const [notifSearch, setNotifSearch] = useState('');
+  const [notifFilter, setNotifFilter] = useState('ALL');
+  const [dispatchNotifs, setDispatchNotifs] = useState([
+    {
+      id: 'NOTIF-101',
+      shipment_id: 'SHP-1042',
+      container_id: 'CTN-8801',
+      action_type: 'DIVERT',
+      title: 'SHP-1042 / CTN-8801 — DIVERT TO COLD HUB',
+      recipient: 'driver (TRK-204) · ops',
+      time: '18:41:27',
+      condition_code: 'MAX_DURATION',
+      condition_title: '⏱️ Max Excursion Duration Exceeded (45m > 30m WHO Vaccine SOP Limit)',
+      condition_badge: 'L1 Bounds (+10.3°C) + Max Duration Breach',
+      severity: 'CRITICAL',
+      cargo: 'mRNA Vaccines',
+      cargo_value: '$1.25M',
+      asset: 'TRK-204 (Reefer 40ft)',
+      temp: '10.3°C',
+      peak_temp: '11.2°C',
+      sop_range: '2.0°C – 8.0°C',
+      excursion_duration_mins: 45,
+      spoilage_risk: '94% Spoilage Probability',
+      route: 'Mumbai Port → Frankfurt (West Coast Sea Corridor)',
+      nearest_hub: 'Navi Mumbai Cold Hub (14.2 km · 22m ETA · 420T Available)',
+      prescriptive_action: 'Divert container immediately to Navi Mumbai Central Cold Logistics Hub. Active compressor thermal breach.',
+      whatsapp_sent: true,
+    },
+    {
+      id: 'NOTIF-102',
+      shipment_id: 'SHP-1051',
+      container_id: 'CTN-8804',
+      action_type: 'DIVERT',
+      title: 'SHP-1051 / CTN-8804 — DIVERT TO INLAND HUB',
+      recipient: 'driver (TRK-089)',
+      time: '16:53:33',
+      condition_code: 'L2_RATE_OF_CHANGE',
+      condition_title: '📈 Rapid Thermal Climb (+2.4°C/hr Rate-of-Change Spike)',
+      condition_badge: 'L2 Rate-of-Change Alert',
+      severity: 'HIGH',
+      cargo: 'Biopharmaceuticals',
+      cargo_value: '$740K',
+      asset: 'TRK-089',
+      temp: '8.9°C',
+      peak_temp: '9.4°C',
+      sop_range: '2.0°C – 8.0°C',
+      excursion_duration_mins: 25,
+      spoilage_risk: '68% Spoilage Risk',
+      route: 'Chennai → Bengaluru',
+      nearest_hub: 'Bengaluru Inland Cold Terminal (18.5 km · 28m ETA)',
+      prescriptive_action: 'Reroute overland via Bengaluru inland freight terminal to avoid coastal cyclone thermal delays.',
+      whatsapp_sent: true,
+    },
+    {
+      id: 'NOTIF-103',
+      shipment_id: 'SHP-1067',
+      container_id: 'CTN-8812',
+      action_type: 'REPAIR',
+      title: 'SHP-1067 / CTN-8812 — REEFER COMPRESSOR REPAIR',
+      recipient: 'driver + ops technician',
+      time: '16:50:36',
+      condition_code: 'COMPRESSOR_REPAIR',
+      condition_title: '🔧 Primary Reefer Compressor Power Fluctuation & Pressure Drop',
+      condition_badge: 'Reefer Compressor Fault',
+      severity: 'HIGH',
+      cargo: 'Automotive Temp Sensors',
+      cargo_value: '$510K',
+      asset: 'TRK-312',
+      temp: '7.8°C',
+      peak_temp: '8.1°C',
+      sop_range: '2.0°C – 8.0°C',
+      excursion_duration_mins: 15,
+      spoilage_risk: '32% Risk',
+      route: 'Delhi → Nhava Sheva',
+      nearest_hub: 'Nhava Sheva Port Reefer Care (8.1 km · 14m ETA)',
+      prescriptive_action: 'Dispatch mobile repair unit or switch to backup diesel reefer compressor.',
+      whatsapp_sent: true,
+    },
+    {
+      id: 'NOTIF-104',
+      shipment_id: 'SHP-1078',
+      container_id: 'CTN-8819',
+      action_type: 'FREEZE_ALERT',
+      title: 'SHP-1078 / CTN-8819 — SUB-ZERO FREEZE DANGER',
+      recipient: 'driver (TRK-114) · ops',
+      time: '15:22:10',
+      condition_code: 'SUBZERO_FREEZE',
+      condition_title: '❄️ Sub-Zero Freeze Breach (1.1°C < 2.0°C SOP Min - Crystallization Risk)',
+      condition_badge: 'Freeze Risk (Crystallization)',
+      severity: 'CRITICAL',
+      cargo: 'Insulin & Liquid Biologics',
+      cargo_value: '$1.15M',
+      asset: 'TRK-114',
+      temp: '1.1°C',
+      peak_temp: '0.9°C',
+      sop_range: '2.0°C – 8.0°C',
+      excursion_duration_mins: 20,
+      spoilage_risk: '88% Risk (Protein Crystallization)',
+      route: 'Pune → Mumbai Air Cargo',
+      nearest_hub: 'Pune Biopharma Hub (6.4 km · 11m ETA)',
+      prescriptive_action: 'Increase reefer thermostat to +4.0°C immediately to prevent irreversible liquid vaccine freezing.',
+      whatsapp_sent: false,
+    },
+    {
+      id: 'NOTIF-105',
+      shipment_id: 'SHP-1082',
+      container_id: 'CTN-8822',
+      action_type: 'RESET',
+      title: 'SHP-1082 / CTN-8822 — SENSOR TELEMETRY FROZEN',
+      recipient: 'ops lead',
+      time: '14:15:05',
+      condition_code: 'L4_PERSISTENCE',
+      condition_title: '🛰️ L4 Persistence Alert (Static IoT Telemetry Frozen > 15 mins)',
+      condition_badge: 'Stuck Sensor / Data Dropout',
+      severity: 'MEDIUM',
+      cargo: 'Plasma Derivatives',
+      cargo_value: '$620K',
+      asset: 'TRK-105',
+      temp: '5.0°C (Static)',
+      peak_temp: '5.0°C',
+      sop_range: '2.0°C – 8.0°C',
+      excursion_duration_mins: 18,
+      spoilage_risk: '25% Risk',
+      route: 'Hyderabad → Goa',
+      nearest_hub: 'Hyderabad Cold Logistics (12.0 km)',
+      prescriptive_action: 'Ping IoT telemetry gateway to reset sensor stream and verify physical backup probe.',
+      whatsapp_sent: false,
+    },
+    {
+      id: 'NOTIF-106',
+      shipment_id: 'SHP-1090',
+      container_id: 'CTN-8830',
+      action_type: 'HUB_EXHAUSTED',
+      title: 'SHP-1090 / CTN-8830 — PRIMARY HUB FULL / ALTERNATE ROUTE',
+      recipient: 'ops lead',
+      time: '13:08:40',
+      condition_code: 'HUB_EXHAUSTION',
+      condition_title: '🏢 Primary Facility Full (Navi Mumbai Hub Available < 20T)',
+      condition_badge: 'Hub Capacity Alert',
+      severity: 'HIGH',
+      cargo: 'Monoclonal Antibodies',
+      cargo_value: '$890K',
+      asset: 'TRK-220',
+      temp: '9.1°C',
+      peak_temp: '9.5°C',
+      sop_range: '2.0°C – 8.0°C',
+      excursion_duration_mins: 35,
+      spoilage_risk: '74% Risk',
+      route: 'Thane → JNPT',
+      nearest_hub: 'Mundra Port Certified Cold Vault (Secondary: 145 km)',
+      prescriptive_action: 'Divert to secondary certified facility due to primary hub occupancy (96% full).',
+      whatsapp_sent: false,
+    }
+  ]);
+
+  const handleSendWhatsApp = (id: string) => {
+    setDispatchNotifs(prev => prev.map(n => n.id === id ? { ...n, whatsapp_sent: true } : n));
+    if (notify) {
+      const target = dispatchNotifs.find(n => n.id === id);
+      notify(`📲 WhatsApp alert sent to driver for ${target?.shipment_id || id} with complete thermal telemetry payload!`);
+    }
+  };
+
+  // Filtered Notifications List
+  const filteredNotifs = dispatchNotifs.filter(n => {
+    const matchesSearch = !notifSearch || 
+      n.shipment_id.toLowerCase().includes(notifSearch.toLowerCase()) ||
+      n.container_id.toLowerCase().includes(notifSearch.toLowerCase()) ||
+      n.title.toLowerCase().includes(notifSearch.toLowerCase()) ||
+      n.cargo.toLowerCase().includes(notifSearch.toLowerCase());
+    const matchesFilter = notifFilter === 'ALL' || n.condition_code === notifFilter;
+    return matchesSearch && matchesFilter;
   });
 
   // New Container Form State
@@ -2484,6 +2712,114 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
           </div>
         </Panel>
       </div>
+
+      {/* 4.5 LIVE COLD CHAIN DISPATCH NOTIFICATIONS & ALERTS */}
+      <Panel className="table-panel" style={{ marginTop: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <h3 style={{ margin: 0, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8, color: '#f1f5f9' }}>
+              <span>📲</span> LIVE DISPATCH NOTIFICATIONS &amp; EXCURSION ALERTS
+            </h3>
+            <span className="badge red" style={{ fontSize: 11, padding: '3px 8px' }}>
+              {filteredNotifs.length} Active
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <label className="searchbox" style={{ width: 240, padding: '5px 10px', height: 32 }}>
+              <Search size={14} />
+              <input
+                value={notifSearch}
+                onChange={(e) => setNotifSearch(e.target.value)}
+                placeholder="Search ID, Shipment, Container..."
+                style={{ fontSize: 12 }}
+              />
+            </label>
+
+            <select
+              value={notifFilter}
+              onChange={(e) => setNotifFilter(e.target.value)}
+              className="filter-select"
+              style={{
+                background: '#172136',
+                border: '1px solid #243550',
+                color: '#d9e5f5',
+                padding: '5px 10px',
+                borderRadius: 6,
+                fontSize: 11,
+                fontWeight: 600
+              }}
+            >
+              <option value="ALL">All Conditions ({dispatchNotifs.length})</option>
+              <option value="MAX_DURATION">⏱️ Duration Exceeded</option>
+              <option value="L1_BOUNDS">🌡️ L1 Bounds Breach</option>
+              <option value="L2_RATE_OF_CHANGE">📈 Rate of Change Spike</option>
+              <option value="SUBZERO_FREEZE">❄️ Sub-Zero Freeze Risk</option>
+              <option value="L4_PERSISTENCE">🛰️ Sensor Freeze / Dropout</option>
+              <option value="HUB_EXHAUSTION">🏢 Hub Capacity Full</option>
+              <option value="COMPRESSOR_REPAIR">🔧 Compressor Repair</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="notif-cards-list">
+          {filteredNotifs.map((n) => (
+            <div key={n.id} className={`notif-card ${n.severity.toLowerCase()}`}>
+              {/* Header */}
+              <div className="notif-card-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 16 }}>
+                    {n.action_type === 'DIVERT' ? '🚨' : n.action_type === 'REPAIR' ? '🔧' : n.action_type === 'FREEZE_ALERT' ? '❄️' : '⚡'}
+                  </span>
+                  <strong style={{ fontSize: 14, color: '#f1f5f9' }}>{n.title}</strong>
+                  <span className="notif-channel-pill">📲 WhatsApp</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <small style={{ color: '#7185a3', fontSize: 11 }}>To: {n.recipient} · {n.time}</small>
+                  <span className={`badge ${n.severity.toLowerCase()}`}>{n.severity}</span>
+                </div>
+              </div>
+
+              {/* Condition Trigger Banner */}
+              <div className="notif-trigger-banner">
+                <AlertTriangle size={14} style={{ color: n.severity === 'CRITICAL' ? '#EF4444' : '#F59E0B', flexShrink: 0 }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <b>Trigger Condition:</b> <span style={{ color: '#f1f5f9' }}>{n.condition_title}</span>
+                  <span className="notif-cond-chip">{n.condition_badge}</span>
+                </div>
+              </div>
+
+              {/* Comprehensive Details Grid */}
+              <div className="notif-details-grid">
+                <div>📦 <b>Cargo &amp; Value:</b> {n.cargo} (<b style={{ color: '#10B981' }}>{n.cargo_value}</b>)</div>
+                <div>🚚 <b>Assigned Asset:</b> {n.asset}</div>
+                <div>📍 <b>Corridor Route:</b> {n.route}</div>
+                <div>🌡 <b>Live Temp:</b> <b style={{ color: n.severity === 'CRITICAL' ? '#EF4444' : '#F59E0B' }}>{n.temp}</b> (Peak {n.peak_temp} · SOP {n.sop_range})</div>
+                <div>⏱ <b>Excursion Duration:</b> {n.excursion_duration_mins} mins</div>
+                <div>⚠️ <b>Spoilage Risk:</b> <b style={{ color: n.severity === 'CRITICAL' ? '#EF4444' : '#F59E0B' }}>{n.spoilage_risk}</b></div>
+                <div style={{ gridColumn: '1 / -1' }}>🏢 <b>Nearest Certified Hub:</b> {n.nearest_hub}</div>
+                <div style={{ gridColumn: '1 / -1', color: '#08b5e5' }}>💡 <b>Prescriptive Action:</b> {n.prescriptive_action}</div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="notif-card-actions">
+                <button
+                  className="small-btn whatsapp-btn"
+                  onClick={() => handleSendWhatsApp(n.id)}
+                >
+                  <Send size={12} /> {n.whatsapp_sent ? 'WhatsApp Alert Sent ✓' : 'Send WhatsApp ►'}
+                </button>
+                <button
+                  className="small-btn divert-btn"
+                  onClick={() => handleExecuteAction(n.container_id, n.action_type === 'REPAIR' ? 'REPAIR' : 'DIVERT_HUB')}
+                >
+                  {n.action_type === 'DIVERT' ? '🚨 DIVERT NOW...' : n.action_type === 'REPAIR' ? '🔧 REQUEST REPAIR...' : '⚡ EXECUTE ACTION...'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Panel>
 
       {/* 5. COLD CHAIN ASSET TABLE */}
       <Panel className="table-panel">

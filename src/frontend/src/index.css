@@ -477,128 +477,37 @@
   color: #10b981;
 }
 
-/* ==========================================================================
-   3D MAPBOX GL JS CONTROL TOWER & COLD CHAIN IoT STYLING
-   ========================================================================== */
-
-.mapbox3d-container {
+/* LiveCold 3D / Leaflet Map Container Styles */
+.livecold-map-container {
   position: relative;
   width: 100%;
-  height: 540px;
+  height: 480px;
+  min-height: 480px;
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid #1e293b;
-  background: #020813;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  background: #0b1329;
 }
 
-@media (max-width: 1024px) {
-  .mapbox3d-container {
-    height: 440px;
-  }
-}
-
-.mapboxgl-map {
-  width: 100%;
-  height: 100%;
-  font-family: inherit;
-}
-
-/* Dark Theme Overrides for Mapbox Popups */
-.mapboxgl-popup {
-  max-width: 320px !important;
-  z-index: 100;
-}
-
-.mapboxgl-popup-content {
-  background: rgba(11, 16, 33, 0.95) !important;
-  backdrop-filter: blur(12px);
-  border: 1px solid #1e2d4a;
-  border-radius: 10px !important;
-  padding: 14px 16px !important;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7), 0 0 15px rgba(8, 181, 229, 0.2) !important;
-  color: #f8fafc !important;
-}
-
-.mapboxgl-popup-anchor-top .mapboxgl-popup-tip { border-bottom-color: rgba(11, 16, 33, 0.95) !important; }
-.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip { border-top-color: rgba(11, 16, 33, 0.95) !important; }
-.mapboxgl-popup-anchor-left .mapboxgl-popup-tip { border-right-color: rgba(11, 16, 33, 0.95) !important; }
-.mapboxgl-popup-anchor-right .mapboxgl-popup-tip { border-left-color: rgba(11, 16, 33, 0.95) !important; }
-.mapboxgl-popup-close-button {
-  color: #94a3b8 !important;
-  font-size: 16px !important;
-  padding: 4px 8px !important;
-  outline: none !important;
-}
-.mapboxgl-popup-close-button:hover {
-  color: #f1f5f9 !important;
-}
-
-/* Pulsing Red Ring Animation for Temperature Breach Containers */
-@keyframes breachPulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8), 0 0 12px rgba(239, 68, 68, 0.9);
-    transform: scale(1);
-  }
-  50% {
-    box-shadow: 0 0 0 16px rgba(239, 68, 68, 0), 0 0 24px rgba(239, 68, 68, 0.9);
-    transform: scale(1.15);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0), 0 0 12px rgba(239, 68, 68, 0.9);
-    transform: scale(1);
-  }
-}
-
-.pulse-breach-ring {
-  animation: breachPulse 1.6s infinite cubic-bezier(0.45, 0, 0.55, 1);
-  border-radius: 50%;
-}
-
-/* Marker Styling */
-.mapbox-custom-marker {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: transform 0.2s ease, filter 0.2s ease;
-}
-
-.mapbox-custom-marker:hover {
-  transform: scale(1.2) translateY(-2px);
-  z-index: 50 !important;
-}
-
-/* Mapbox Control Overlays */
-.mapbox3d-top-overlay {
+.livecold-overlay-top {
   position: absolute;
   top: 14px;
   left: 14px;
-  right: 14px;
+  z-index: 1000;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  pointer-events: none;
-  z-index: 10;
-}
-
-.mapbox3d-chip-group {
-  display: flex;
-  align-items: center;
   gap: 8px;
-  pointer-events: auto;
   flex-wrap: wrap;
+  pointer-events: auto;
 }
 
-.mapbox3d-chip {
+.livecold-chip {
   background: rgba(13, 20, 36, 0.85);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(56, 189, 248, 0.25);
   border-radius: 20px;
-  padding: 5px 12px;
+  padding: 6px 12px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   color: #e2e8f0;
   display: flex;
   align-items: center;
@@ -606,418 +515,227 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
-.mapbox3d-chip.danger {
-  background: rgba(80, 15, 25, 0.9);
+.livecold-chip.danger {
   border-color: rgba(239, 68, 68, 0.5);
-  color: #fca5a5;
+  background: rgba(45, 15, 25, 0.85);
+  color: #ef4444;
 }
 
-.mapbox3d-chip.warning {
-  background: rgba(78, 48, 12, 0.9);
-  border-color: rgba(245, 158, 11, 0.5);
-  color: #fde047;
-}
-
-/* Control Toolbar & Fly-To Controls */
-.mapbox3d-flyto-bar {
-  position: absolute;
-  top: 60px;
-  left: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  z-index: 10;
-}
-
-.mapbox3d-btn {
-  background: rgba(15, 23, 42, 0.88);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: #f1f5f9;
-  border-radius: 8px;
-  padding: 7px 12px;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  white-space: nowrap;
-}
-
-.mapbox3d-btn:hover {
-  background: rgba(30, 41, 59, 0.95);
-  border-color: #08b5e5;
-  color: #08b5e5;
-  transform: translateX(2px);
-}
-
-.mapbox3d-btn.active {
-  background: #08b5e5;
-  color: #020813;
-  border-color: #38bdf8;
-  box-shadow: 0 0 12px rgba(8, 181, 229, 0.5);
-}
-
-/* Layer Toggle Switch Panel */
-.mapbox3d-layer-panel {
+.livecold-overlay-controls {
   position: absolute;
   top: 14px;
   right: 14px;
-  background: rgba(11, 16, 33, 0.9);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  padding: 10px 14px;
+  z-index: 1000;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  z-index: 10;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  min-width: 170px;
+  gap: 6px;
+  pointer-events: auto;
 }
 
-.mapbox3d-layer-title {
-  font-size: 10px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #64748b;
-  margin-bottom: 2px;
-}
-
-.mapbox3d-layer-toggle {
+.livecold-ctrl-btn {
+  background: rgba(13, 20, 36, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid #202c42;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  font-size: 11px;
-  color: #cbd5e1;
-  font-weight: 600;
+  gap: 6px;
   cursor: pointer;
-  user-select: none;
+  transition: all 0.2s ease;
 }
 
-.mapbox3d-layer-toggle input[type="checkbox"] {
-  accent-color: #08b5e5;
-  cursor: pointer;
-  width: 14px;
-  height: 14px;
+.livecold-ctrl-btn:hover {
+  background: #17253b;
+  color: #f8fafc;
+  border-color: #38bdf8;
 }
 
-/* Bottom Legend Bar */
-.mapbox3d-bottom-legend {
+.livecold-legend {
   position: absolute;
   bottom: 14px;
   left: 14px;
-  right: 14px;
-  background: rgba(11, 16, 33, 0.88);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 1000;
+  background: rgba(13, 20, 36, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid #202c42;
   border-radius: 8px;
   padding: 8px 14px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
   font-size: 11px;
+  font-weight: 600;
   color: #94a3b8;
-  z-index: 10;
+  flex-wrap: wrap;
+  align-items: center;
+  pointer-events: auto;
+}
+
+.livecold-legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@keyframes pulse-critical-anim {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.pulse-critical {
+  animation: pulse-critical-anim 1.5s infinite;
+}
+
+/* Ensure Leaflet container covers full space */
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+  background: #0b1329 !important;
+}
+
+/* Live Cold Chain Dispatcher Notifications Panel */
+.notif-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.notif-card {
+  background: #0e1829;
+  border: 1px solid #202c42;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.notif-card:hover {
+  border-color: #2b3e5e;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
+.notif-card.critical {
+  border-left: 4px solid #ef4444;
+  background: linear-gradient(180deg, rgba(59, 27, 43, 0.35) 0%, #0e1829 100%);
+}
+
+.notif-card.high {
+  border-left: 4px solid #f59e0b;
+  background: linear-gradient(180deg, rgba(56, 38, 25, 0.35) 0%, #0e1829 100%);
+}
+
+.notif-card.medium {
+  border-left: 4px solid #08b5e5;
+  background: linear-gradient(180deg, rgba(8, 181, 229, 0.08) 0%, #0e1829 100%);
+}
+
+.notif-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.notif-channel-pill {
+  background: #153326;
+  color: #10b981;
+  border: 1px solid #10b981;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.notif-trigger-banner {
+  background: #17253b;
+  border: 1px solid #283a54;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
-.mapbox3d-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* Audit Certificate Modal & Print System */
-.audit-modal-card {
-  background: #0d1424;
-  border: 1px solid #202c42;
-  border-radius: 12px;
-  width: 100%;
-  max-width: 860px;
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.8);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.audit-certificate {
-  background: #111827;
-  border: 1px solid #243550;
-  border-radius: 10px;
-  padding: 24px;
-  color: #f1f5f9;
-  font-family: inherit;
-  display: grid;
-  gap: 16px;
-}
-
-.audit-header-banner {
-  border-bottom: 2px solid #08b5e5;
-  padding-bottom: 14px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.audit-title h2 {
-  font-size: 16px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  margin: 0 0 4px;
-  color: #08b5e5;
-}
-
-.audit-title p {
-  font-size: 11px;
-  color: #8fa3c1;
-  margin: 0;
-}
-
-.audit-meta-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  background: #172136;
-  padding: 12px;
-  border-radius: 8px;
-  font-size: 11px;
-}
-
-.audit-meta-grid div span {
-  display: block;
-  color: #7185a3;
+.notif-cond-chip {
+  background: #202c42;
+  color: #38bdf8;
+  padding: 2px 8px;
+  border-radius: 4px;
   font-size: 9px;
   font-weight: 700;
-  text-transform: uppercase;
+  margin-left: 6px;
 }
 
-.audit-meta-grid div strong {
-  color: #f1f5f9;
-  font-size: 12px;
-}
-
-.audit-section-box {
-  background: #151f33;
-  border: 1px solid #1f2d47;
+.notif-details-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px 14px;
+  background: #0a1120;
+  border: 1px solid #1b263b;
   border-radius: 8px;
-  padding: 14px;
+  padding: 12px 14px;
+  font-size: 11px;
+  color: #94a3b8;
 }
 
-.audit-section-box h4 {
-  margin: 0 0 8px;
-  font-size: 12px;
-  color: #38bdf8;
+@media (max-width: 900px) {
+  .notif-details-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .notif-details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.notif-card-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 4px;
 }
 
-.audit-telemetry-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11px;
-  margin-top: 8px;
+.whatsapp-btn {
+  background: #10b981 !important;
+  color: #022c22 !important;
+  border-color: #10b981 !important;
+  font-weight: 700 !important;
+  padding: 6px 14px !important;
 }
 
-.audit-telemetry-table th {
-  background: #1b2842;
-  color: #8fa3c1;
-  padding: 6px 10px;
-  text-align: left;
-  font-size: 10px;
+.whatsapp-btn:hover {
+  background: #059669 !important;
+  color: #ffffff !important;
 }
 
-.audit-telemetry-table td {
-  padding: 6px 10px;
-  border-top: 1px solid #202d44;
-  color: #cbd5e1;
+.divert-btn {
+  background: #1d3557 !important;
+  color: #38bdf8 !important;
+  border-color: #38bdf8 !important;
+  font-weight: 700 !important;
+  padding: 6px 14px !important;
 }
 
-.audit-signatures {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-top: 10px;
-  padding-top: 14px;
-  border-top: 1px dashed #2a3c57;
+.divert-btn:hover {
+  background: #254673 !important;
+  border-color: #60a5fa !important;
 }
 
-.signature-block {
-  background: #172136;
-  border: 1px solid #243550;
-  border-radius: 8px;
-  padding: 12px;
-  font-size: 11px;
-}
-
-.stamp-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: #102d46;
-  border: 1px solid #08b5e5;
-  color: #08b5e5;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 10px;
-  font-weight: 700;
-  margin-top: 6px;
-}
-
-@media print {
-  @page {
-    size: A4 portrait;
-    margin: 12mm;
-  }
-  
-  html, body {
-    background: #ffffff !important;
-    color: #0f172a !important;
-    height: auto !important;
-    min-height: auto !important;
-    overflow: visible !important;
-  }
-
-  /* Hide app navigation and underlying dashboard */
-  .app-layout, .sidebar, .header, .kpi-grid, .map-panel, .cold-grid, .table-panel, .copilot-panel, .toast {
-    display: none !important;
-  }
-
-  .modal-backdrop {
-    display: block !important;
-    position: static !important;
-    background: #ffffff !important;
-    width: 100% !important;
-    height: auto !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    overflow: visible !important;
-    z-index: 99999 !important;
-  }
-
-  .modal-backdrop > *:not(.printable-audit-report) {
-    display: none !important;
-  }
-
-  .printable-audit-report {
-    display: block !important;
-    position: static !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    background: #ffffff !important;
-    color: #0f172a !important;
-    border: none !important;
-    box-shadow: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: visible !important;
-  }
-
-  .printable-audit-report .modal-header,
-  .printable-audit-report .modal-footer,
-  .printable-audit-report .no-print {
-    display: none !important;
-  }
-
-  .printable-audit-report .audit-scroll-body {
-    max-height: none !important;
-    overflow: visible !important;
-    padding: 0 !important;
-  }
-
-  /* Ensure the certificate has a clean high-contrast black/dark blue on white format */
-  .printable-audit-report .audit-certificate {
-    background: #ffffff !important;
-    color: #0f172a !important;
-    border: 2px solid #0284c7 !important;
-    border-radius: 6px !important;
-    padding: 20px !important;
-    box-shadow: none !important;
-  }
-
-  .printable-audit-report .audit-header-banner {
-    border-bottom: 2px solid #0284c7 !important;
-    padding-bottom: 12px !important;
-  }
-
-  .printable-audit-report .audit-title h2 {
-    color: #0284c7 !important;
-    font-size: 15pt !important;
-    font-weight: 800 !important;
-    margin: 0 0 4px !important;
-  }
-
-  .printable-audit-report .audit-title p {
-    color: #475569 !important;
-    font-size: 9pt !important;
-  }
-
-  .printable-audit-report .stamp-badge {
-    background: #e0f2fe !important;
-    border: 1.5px solid #0284c7 !important;
-    color: #0284c7 !important;
-    font-weight: 700 !important;
-  }
-
-  .printable-audit-report .audit-meta-grid,
-  .printable-audit-report .audit-section-box,
-  .printable-audit-report .signature-block,
-  .printable-audit-report .audit-tile-box {
-    background: #f8fafc !important;
-    border: 1px solid #cbd5e1 !important;
-    border-radius: 4px !important;
-  }
-
-  .printable-audit-report .audit-meta-grid span,
-  .printable-audit-report .audit-section-box small,
-  .printable-audit-report .signature-block span {
-    color: #64748b !important;
-    font-weight: 700 !important;
-  }
-
-  .printable-audit-report .audit-meta-grid strong,
-  .printable-audit-report .audit-section-box strong,
-  .printable-audit-report .signature-block strong {
-    color: #0f172a !important;
-    font-weight: 700 !important;
-  }
-
-  .printable-audit-report .audit-section-box h4 {
-    color: #0369a1 !important;
-    font-weight: 800 !important;
-  }
-
-  .printable-audit-report .audit-telemetry-table {
-    border: 1px solid #cbd5e1 !important;
-    background: #ffffff !important;
-  }
-
-  .printable-audit-report .audit-telemetry-table th {
-    background: #f1f5f9 !important;
-    color: #334155 !important;
-    border-bottom: 1.5px solid #cbd5e1 !important;
-    font-weight: 700 !important;
-  }
-
-  .printable-audit-report .audit-telemetry-table td {
-    background: #ffffff !important;
-    color: #0f172a !important;
-    border-top: 1px solid #e2e8f0 !important;
-  }
-
-  .printable-audit-report * {
-    text-shadow: none !important;
-    box-shadow: none !important;
-  }
-}
 
 
 
