@@ -4,7 +4,7 @@ import {
   ChevronRight, CircleDollarSign, Clock3, Container, Download, ExternalLink, Filter,
   FlaskConical, Gauge, LayoutDashboard, MapPin, Package, Search, Send, Settings2, ShieldCheck,
   Ship, Sparkles, Thermometer, Truck, X, XCircle, Zap, Warehouse, ShieldAlert, Snowflake, Activity,
-  Plus, RefreshCw, Sliders, FileText, Printer, CheckCheck, Award, Globe, LogIn, LogOut, User as UserIcon,
+  Plus, RefreshCw, Sliders, FileText, Printer, CheckCheck, Award,
   type LucideIcon,
 } from 'lucide-react';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -12,8 +12,6 @@ import { actions as defaultActions, disruptions as defaultDisruptions, opportuni
 import { api } from './api';
 import { LiveColdMap, type ColdContainerMapItem, type ColdHubMapItem, type ColdRouteMapItem } from './LiveColdMap';
 import { MapboxControlTower3D } from './MapboxControlTower3D';
-import Landing from './Landing';
-import { supabase, signInWithPassword, signUpWithPassword, signInWithGoogle, persistProfile } from './supabase';
 
 const cyan = '#08B5E5';
 const defaultTrendData = [{ t: '00:00', v: 68 }, { t: '02:00', v: 67.8 }, { t: '04:00', v: 66.5 }, { t: '06:00', v: 67 }, { t: '08:00', v: 69.2 }, { t: '10:00', v: 70.8 }, { t: '12:00', v: 72 }, { t: '14:00', v: 71.8 }, { t: '16:00', v: 73 }, { t: '18:00', v: 72.5 }, { t: '20:00', v: 71.2 }, { t: '22:00', v: 70.8 }];
@@ -21,7 +19,6 @@ const defaultAssetData = [{ name: 'Trucks', value: 76 }, { name: 'Containers', v
 
 const routePages: Record<string, { title: string; subtitle: string }> = {
   '/': { title: 'Supply Chain Control Tower', subtitle: 'Real-time visibility, disruption intelligence and AI-powered response.' },
-  '/landing': { title: 'ChainGuard AI Platform Overview', subtitle: 'Enterprise AI Control Tower architecture and features showcase.' },
   '/shipments': { title: 'Shipment Intelligence', subtitle: 'Prioritised view of shipment health, disruption exposure and AI actions.' },
   '/disruptions': { title: 'Disruption Intelligence', subtitle: 'Active disruption events with impact analysis, affected shipments, and AI-powered remediation.' },
   '/fleet': { title: 'Fleet Utilisation Optimizer', subtitle: 'Turn idle capacity into operational resilience.' },
@@ -41,16 +38,6 @@ function App() {
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState<Toast | null>(null);
 
-  const [user, setUser] = useState<any>(() => {
-    try {
-      const cached = localStorage.getItem('chainguard_user');
-      return cached ? JSON.parse(cached) : null;
-    } catch {
-      return null;
-    }
-  });
-  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
-
   // Dynamic Live State Connected to FastAPI Backend
   const [accepted, setAccepted] = useState(4);
   const [actionList, setActionList] = useState<AIAction[]>(defaultActions);
@@ -65,47 +52,6 @@ function App() {
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
-
-  // Sync Supabase Auth session
-  useEffect(() => {
-    if (supabase) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user) {
-          setUser(session.user);
-          try {
-            localStorage.setItem('chainguard_user', JSON.stringify(session.user));
-          } catch {}
-        }
-      });
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session?.user) {
-          setUser(session.user);
-          try {
-            localStorage.setItem('chainguard_user', JSON.stringify(session.user));
-          } catch {}
-        } else if (!session && _event === 'SIGNED_OUT') {
-          setUser(null);
-          try {
-            localStorage.removeItem('chainguard_user');
-          } catch {}
-        }
-      });
-      return () => subscription.unsubscribe();
-    }
-  }, []);
-
-  const handleSignOut = async () => {
-    if (supabase) {
-      try {
-        await supabase.auth.signOut();
-      } catch {}
-    }
-    setUser(null);
-    try {
-      localStorage.removeItem('chainguard_user');
-    } catch {}
-    notify('Successfully signed out.');
-  };
 
   // Sync state from live backend API on mount & path changes
   useEffect(() => {
@@ -202,32 +148,6 @@ function App() {
     notify(`${assetId} redeployment executed. Utilisation increased to 54.2%.`);
   };
 
-  if (path === '/landing') {
-    return (
-      <div className="landing-page-wrapper">
-        <Landing onLaunch={() => setShowAuthModal(true)} onSignIn={() => setShowAuthModal(true)} />
-        {copilot && <Copilot onClose={() => setCopilot(false)} />}
-        {showAuthModal && (
-          <AuthModal
-            onClose={() => setShowAuthModal(false)}
-            onSuccess={(u) => {
-              setUser(u);
-              setShowAuthModal(false);
-              navigate('/');
-            }}
-            notify={notify}
-          />
-        )}
-        {toast && (
-          <div className={`toast ${toast.tone}`}>
-            <span>{toast.tone === 'success' ? <CheckCircle2 size={17} /> : <XCircle size={17} />}</span>
-            {toast.message}
-          </div>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div className="app-shell">
       <Sidebar collapsed={collapsed} path={path} navigate={navigate} onToggle={() => setCollapsed((v) => !v)} />
@@ -241,11 +161,6 @@ function App() {
           setNotifications={setNotifications}
           profile={profile}
           setProfile={setProfile}
-          user={user}
-          onOpenAuth={() => setShowAuthModal(true)}
-          onSignOut={handleSignOut}
-          navigate={navigate}
-          notify={notify}
         />
         <div className="content-area">
           {search ? (
@@ -292,17 +207,6 @@ function App() {
         </div>
       </main>
       {copilot && <Copilot onClose={() => setCopilot(false)} />}
-      {showAuthModal && (
-        <AuthModal
-          onClose={() => setShowAuthModal(false)}
-          onSuccess={(u) => {
-            setUser(u);
-            setShowAuthModal(false);
-            navigate('/');
-          }}
-          notify={notify}
-        />
-      )}
       {toast && (
         <div className={`toast ${toast.tone}`}>
           <span>{toast.tone === 'success' ? <CheckCircle2 size={17} /> : <XCircle size={17} />}</span>
@@ -315,7 +219,6 @@ function App() {
 
 function Sidebar({ collapsed, path, navigate, onToggle }: { collapsed: boolean; path: string; navigate: (to: string) => void; onToggle: () => void }) {
   const items: { label: string; path: string; icon: LucideIcon; badge?: string }[] = [
-    { label: 'Public Showcase', path: '/landing', icon: Globe },
     { label: 'Control Tower', path: '/', icon: LayoutDashboard },
     { label: 'Shipments', path: '/shipments', icon: Package, badge: '8' },
     { label: 'Disruptions', path: '/disruptions', icon: AlertTriangle, badge: '7' },
@@ -352,14 +255,11 @@ function Sidebar({ collapsed, path, navigate, onToggle }: { collapsed: boolean; 
 }
 
 function Header({
-  page, search, setSearch, onCopilot, notifications, setNotifications, profile, setProfile,
-  user, onOpenAuth, onSignOut, navigate, notify
+  page, search, setSearch, onCopilot, notifications, setNotifications, profile, setProfile
 }: {
   page: { title: string; subtitle: string }; search: string; setSearch: (value: string) => void;
   onCopilot: () => void; notifications: boolean; setNotifications: (value: boolean) => void;
   profile: boolean; setProfile: (value: boolean) => void;
-  user: any; onOpenAuth: () => void; onSignOut: () => void; navigate: (to: string) => void;
-  notify: (msg: string, tone?: 'success' | 'danger') => void;
 }) {
   return (
     <header className="topbar">
@@ -373,15 +273,6 @@ function Header({
           <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search shipments, assets, disruptions..." />
           <kbd>⌘K</kbd>
         </label>
-        
-        <button
-          className="small-btn"
-          style={{ background: '#131d2e', color: '#38bdf8', borderColor: '#20324f' }}
-          onClick={() => navigate('/landing')}
-          title="View Public Architecture & Landing Showcase"
-        >
-          <Globe size={14} /> Public Showcase
-        </button>
 
         <div className="engine"><span className="dot green" /> AI Engine: IBM watsonx.ai <b>•</b></div>
 
@@ -402,246 +293,23 @@ function Header({
 
         <button className="copilot-btn" onClick={onCopilot}><Sparkles size={15} /> AI Copilot</button>
 
-        {user ? (
-          <div className="header-popover-wrap">
-            <button className="profile-btn" onClick={() => setProfile(!profile)}>
-              <span className="avatar">
-                {user.user_metadata?.full_name ? user.user_metadata.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() : 'OP'}
-              </span>
-              <span>{user.user_metadata?.full_name || user.email?.split('@')[0] || 'Operations Lead'}</span>
-              <ChevronDown size={14} />
-            </button>
-            {profile && (
-              <div className="popover profile-pop">
-                <strong>{user.user_metadata?.full_name || 'Operations Lead'}</strong>
-                <small>{user.email || 'lead.operator@chainguard.ai'}</small>
-                <div style={{ margin: '8px 0', borderTop: '1px solid #202c42' }} />
-                <button onClick={() => { setProfile(false); notify('Preferences saved.'); }}><Settings2 size={14} /> Account Settings</button>
-                <button onClick={() => { setProfile(false); onSignOut(); }} style={{ color: '#ef4444' }}><LogOut size={14} /> Sign Out</button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <button
-            className="small-btn"
-            style={{ background: '#08b5e5', color: '#001824', fontWeight: 700 }}
-            onClick={onOpenAuth}
-          >
-            <LogIn size={14} /> Sign In
+        <div className="header-popover-wrap">
+          <button className="profile-btn" onClick={() => setProfile(!profile)}>
+            <span className="avatar">CG</span>
+            <span>Operations Lead</span>
+            <ChevronDown size={14} />
           </button>
-        )}
-      </div>
-    </header>
-  );
-}
-
-function AuthModal({ onClose, onSuccess, notify }: { onClose: () => void; onSuccess: (user: any) => void; notify: (msg: string, tone?: 'success' | 'danger') => void }) {
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-
-  const handleDemoLogin = (role: string = 'Operations Lead') => {
-    const demoUser = {
-      id: 'demo-user-101',
-      email: 'lead.operator@chainguard.ai',
-      user_metadata: { full_name: 'Elena Vasquez', role: role, avatar_url: '' },
-      app_metadata: { provider: 'demo' }
-    };
-    try {
-      localStorage.setItem('chainguard_user', JSON.stringify(demoUser));
-    } catch {}
-    onSuccess(demoUser);
-    notify(`Signed in as ${demoUser.user_metadata.full_name} (${role})`);
-    onClose();
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) {
-      setErrorMsg('Please provide both email and password.');
-      return;
-    }
-    setLoading(true);
-    setErrorMsg('');
-    try {
-      if (isSignUp) {
-        const res = await signUpWithPassword(email, password, fullName);
-        if (res.error) throw res.error;
-        if (res.data?.user) {
-          await persistProfile(res.data.user, 'email');
-          localStorage.setItem('chainguard_user', JSON.stringify(res.data.user));
-          onSuccess(res.data.user);
-          notify('Account created and signed in successfully!');
-          onClose();
-        } else {
-          notify('Confirmation email sent. Please verify your email.');
-          onClose();
-        }
-      } else {
-        const res = await signInWithPassword(email, password);
-        if (res.error) throw res.error;
-        if (res.data?.user) {
-          await persistProfile(res.data.user, 'email');
-          localStorage.setItem('chainguard_user', JSON.stringify(res.data.user));
-          onSuccess(res.data.user);
-          notify(`Welcome back, ${res.data.user.user_metadata?.full_name || email}!`);
-          onClose();
-        }
-      }
-    } catch (err: any) {
-      console.warn('Auth error:', err);
-      setErrorMsg(err.message || 'Authentication failed. Please check credentials.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogle = async () => {
-    try {
-      await signInWithGoogle();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Google OAuth failed.');
-    }
-  };
-
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-card" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header" style={{ borderBottom: '1px solid #1f2d45' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(8, 181, 229, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#08b5e5' }}>
-              <ShieldCheck size={20} />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, fontSize: 15, color: '#f1f5f9' }}>{isSignUp ? 'Create Operator Account' : 'Operator Portal Sign In'}</h3>
-              <p style={{ margin: 0, fontSize: 11, color: '#7185a3' }}>ChainGuard AI Enterprise Supply Chain Control Tower</p>
-            </div>
-          </div>
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#7185a3', cursor: 'pointer' }}><X size={18} /></button>
-        </div>
-
-        <div style={{ padding: '20px 24px' }}>
-          {/* 1-Click Quick Demo Sign In for Hackathon Reviewers / Judges */}
-          <div style={{ background: 'linear-gradient(135deg, rgba(8, 181, 229, 0.12), rgba(16, 185, 129, 0.12))', border: '1px solid rgba(8, 181, 229, 0.3)', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: 5 }}>
-                <Sparkles size={13} /> 1-Click Quick Demo Access (Hackathon Judges)
-              </span>
-            </div>
-            <p style={{ fontSize: 11, color: '#cbd5e1', margin: '0 0 10px' }}>Instant access with full Operations Lead permissions without typing credentials:</p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                type="button"
-                className="small-btn"
-                style={{ flex: 1, background: '#08b5e5', color: '#001824', fontWeight: 700, justifyContent: 'center' }}
-                onClick={() => handleDemoLogin('Lead Logistics Controller')}
-              >
-                ⚡ Operations Lead
-              </button>
-              <button
-                type="button"
-                className="small-btn"
-                style={{ flex: 1, background: '#1e2d48', color: '#e2e8f0', justifyContent: 'center' }}
-                onClick={() => handleDemoLogin('Cold Chain QP Auditor')}
-              >
-                🔬 QP Auditor
-              </button>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-            <button
-              type="button"
-              className="small-btn"
-              style={{ flex: 1, background: '#0f172a', color: '#e2e8f0', border: '1px solid #2dd4bf', justifyContent: 'center' }}
-              onClick={handleGoogle}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-label="Google">
-                  <path d="M21.8 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.8 3-4.4 3-7.3z" fill="#4285F4" />
-                  <path d="M12 21.2c2.6 0 4.8-.9 6.4-2.4l-3.2-2.5c-.9.6-2.1.9-3.2.9-2.5 0-4.6-1.7-5.3-4H.5v2.6A11 11 0 0 0 12 21.2z" fill="#34A853" />
-                  <path d="M6.7 14.1a6.5 6.5 0 0 1 0-4.2V7.2H.5a11 11 0 0 0 0 10.1l6.2-4.2z" fill="#FBBC05" />
-                  <path d="M12 6.2c1.4 0 2.7.5 3.7 1.5l2.8-2.8A9.8 9.8 0 0 0 12 2a11 11 0 0 0-9.5 6.2l6.2 4.2C9.4 8 10.5 6.2 12 6.2z" fill="#EA4335" />
-                </svg>
-                Continue with Google
-              </span>
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', margin: '14px 0', gap: 10 }}>
-            <div style={{ flex: 1, height: 1, background: '#202c42' }} />
-            <span style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>or email credentials</span>
-            <div style={{ flex: 1, height: 1, background: '#202c42' }} />
-          </div>
-
-          {errorMsg && (
-            <div style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #ef4444', borderRadius: 6, padding: '8px 12px', color: '#fca5a5', fontSize: 11, marginBottom: 14 }}>
-              {errorMsg}
+          {profile && (
+            <div className="popover profile-pop">
+              <strong>Operations Control Tower</strong>
+              <small>IBM Hackathon Edition</small>
+              <button><Settings2 size={14} /> Preferences</button>
+              <button><ExternalLink size={14} /> Status: Online</button>
             </div>
           )}
-
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {isSignUp && (
-              <div>
-                <label style={{ display: 'block', fontSize: 11, color: '#94a3b8', marginBottom: 4, fontWeight: 600 }}>Full Name</label>
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="e.g. Priya Sharma"
-                  style={{ width: '100%', background: '#0e1726', border: '1px solid #202c42', borderRadius: 6, padding: '8px 12px', color: '#fff', fontSize: 12 }}
-                />
-              </div>
-            )}
-            <div>
-              <label style={{ display: 'block', fontSize: 11, color: '#94a3b8', marginBottom: 4, fontWeight: 600 }}>Operator Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="operator@company.com"
-                required
-                style={{ width: '100%', background: '#0e1726', border: '1px solid #202c42', borderRadius: 6, padding: '8px 12px', color: '#fff', fontSize: 12 }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 11, color: '#94a3b8', marginBottom: 4, fontWeight: 600 }}>Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                style={{ width: '100%', background: '#0e1726', border: '1px solid #202c42', borderRadius: 6, padding: '8px 12px', color: '#fff', fontSize: 12 }}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="small-btn"
-              style={{ width: '100%', marginTop: 6, padding: '10px 0', background: '#08b5e5', color: '#001824', fontWeight: 700, justifyContent: 'center', fontSize: 13 }}
-            >
-              {loading ? <RefreshCw size={14} className="animate-spin" /> : (isSignUp ? 'Create Account' : 'Sign In to Control Tower')}
-            </button>
-          </form>
-
-          <div style={{ marginTop: 16, textAlign: 'center', fontSize: 11, color: '#7185a3' }}>
-            {isSignUp ? 'Already have an operator account?' : "Don't have an operator profile yet?"}{' '}
-            <button
-              type="button"
-              onClick={() => { setIsSignUp(!isSignUp); setErrorMsg(''); }}
-              style={{ background: 'transparent', border: 'none', color: '#38bdf8', fontWeight: 700, cursor: 'pointer', padding: 0 }}
-            >
-              {isSignUp ? 'Sign In' : 'Sign Up'}
-            </button>
-          </div>
         </div>
       </div>
-    </div>
+    </header>
   );
 }
 

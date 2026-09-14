@@ -4,7 +4,7 @@ import {
   ChevronRight, CircleDollarSign, Clock3, Container, Download, ExternalLink, Filter,
   FlaskConical, Gauge, LayoutDashboard, MapPin, Package, Search, Send, Settings2, ShieldCheck,
   Ship, Sparkles, Thermometer, Truck, X, XCircle, Zap, Warehouse, ShieldAlert, Snowflake, Activity,
-  Plus, RefreshCw, Sliders, FileText, Printer, CheckCheck, Award, Globe, LogIn, LogOut, User as UserIcon,
+  Plus, RefreshCw, Sliders, FileText, Printer, CheckCheck, Award,
   type LucideIcon,
 } from 'lucide-react';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -12,8 +12,6 @@ import { actions as defaultActions, disruptions as defaultDisruptions, opportuni
 import { api } from './api';
 import { LiveColdMap, type ColdContainerMapItem, type ColdHubMapItem, type ColdRouteMapItem } from './LiveColdMap';
 import { MapboxControlTower3D } from './MapboxControlTower3D';
-import Landing from './Landing';
-import { supabase, signInWithPassword, signUpWithPassword, signInWithGoogle, persistProfile } from './supabase';
 
 const cyan = '#08B5E5';
 const defaultTrendData = [{ t: '00:00', v: 68 }, { t: '02:00', v: 67.8 }, { t: '04:00', v: 66.5 }, { t: '06:00', v: 67 }, { t: '08:00', v: 69.2 }, { t: '10:00', v: 70.8 }, { t: '12:00', v: 72 }, { t: '14:00', v: 71.8 }, { t: '16:00', v: 73 }, { t: '18:00', v: 72.5 }, { t: '20:00', v: 71.2 }, { t: '22:00', v: 70.8 }];
@@ -21,7 +19,6 @@ const defaultAssetData = [{ name: 'Trucks', value: 76 }, { name: 'Containers', v
 
 const routePages: Record<string, { title: string; subtitle: string }> = {
   '/': { title: 'Supply Chain Control Tower', subtitle: 'Real-time visibility, disruption intelligence and AI-powered response.' },
-  '/landing': { title: 'ChainGuard AI Platform Overview', subtitle: 'Enterprise AI Control Tower architecture and features showcase.' },
   '/shipments': { title: 'Shipment Intelligence', subtitle: 'Prioritised view of shipment health, disruption exposure and AI actions.' },
   '/disruptions': { title: 'Disruption Intelligence', subtitle: 'Active disruption events with impact analysis, affected shipments, and AI-powered remediation.' },
   '/fleet': { title: 'Fleet Utilisation Optimizer', subtitle: 'Turn idle capacity into operational resilience.' },
@@ -41,16 +38,6 @@ function App() {
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState<Toast | null>(null);
 
-  const [user, setUser] = useState<any>(() => {
-    try {
-      const cached = localStorage.getItem('chainguard_user');
-      return cached ? JSON.parse(cached) : null;
-    } catch {
-      return null;
-    }
-  });
-  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
-
   // Dynamic Live State Connected to FastAPI Backend
   const [accepted, setAccepted] = useState(4);
   const [actionList, setActionList] = useState<AIAction[]>(defaultActions);
@@ -65,47 +52,6 @@ function App() {
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
-
-  // Sync Supabase Auth session
-  useEffect(() => {
-    if (supabase) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user) {
-          setUser(session.user);
-          try {
-            localStorage.setItem('chainguard_user', JSON.stringify(session.user));
-          } catch {}
-        }
-      });
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session?.user) {
-          setUser(session.user);
-          try {
-            localStorage.setItem('chainguard_user', JSON.stringify(session.user));
-          } catch {}
-        } else if (!session && _event === 'SIGNED_OUT') {
-          setUser(null);
-          try {
-            localStorage.removeItem('chainguard_user');
-          } catch {}
-        }
-      });
-      return () => subscription.unsubscribe();
-    }
-  }, []);
-
-  const handleSignOut = async () => {
-    if (supabase) {
-      try {
-        await supabase.auth.signOut();
-      } catch {}
-    }
-    setUser(null);
-    try {
-      localStorage.removeItem('chainguard_user');
-    } catch {}
-    notify('Successfully signed out.');
-  };
 
   // Sync state from live backend API on mount & path changes
   useEffect(() => {
@@ -202,28 +148,6 @@ function App() {
     notify(`${assetId} redeployment executed. Utilisation increased to 54.2%.`);
   };
 
-  if (path === '/landing') {
-    return (
-      <div className="landing-page-wrapper">
-        <Landing onLaunch={() => navigate('/')} onSignIn={() => setShowAuthModal(true)} />
-        {copilot && <Copilot onClose={() => setCopilot(false)} />}
-        {showAuthModal && (
-          <AuthModal
-            onClose={() => setShowAuthModal(false)}
-            onSuccess={(u) => setUser(u)}
-            notify={notify}
-          />
-        )}
-        {toast && (
-          <div className={`toast ${toast.tone}`}>
-            <span>{toast.tone === 'success' ? <CheckCircle2 size={17} /> : <XCircle size={17} />}</span>
-            {toast.message}
-          </div>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div className="app-shell">
       <Sidebar collapsed={collapsed} path={path} navigate={navigate} onToggle={() => setCollapsed((v) => !v)} />
@@ -237,11 +161,6 @@ function App() {
           setNotifications={setNotifications}
           profile={profile}
           setProfile={setProfile}
-          user={user}
-          onOpenAuth={() => setShowAuthModal(true)}
-          onSignOut={handleSignOut}
-          navigate={navigate}
-          notify={notify}
         />
         <div className="content-area">
           {search ? (
@@ -288,13 +207,6 @@ function App() {
         </div>
       </main>
       {copilot && <Copilot onClose={() => setCopilot(false)} />}
-      {showAuthModal && (
-        <AuthModal
-          onClose={() => setShowAuthModal(false)}
-          onSuccess={(u) => setUser(u)}
-          notify={notify}
-        />
-      )}
       {toast && (
         <div className={`toast ${toast.tone}`}>
           <span>{toast.tone === 'success' ? <CheckCircle2 size={17} /> : <XCircle size={17} />}</span>
@@ -307,7 +219,6 @@ function App() {
 
 function Sidebar({ collapsed, path, navigate, onToggle }: { collapsed: boolean; path: string; navigate: (to: string) => void; onToggle: () => void }) {
   const items: { label: string; path: string; icon: LucideIcon; badge?: string }[] = [
-    { label: 'Public Showcase', path: '/landing', icon: Globe },
     { label: 'Control Tower', path: '/', icon: LayoutDashboard },
     { label: 'Shipments', path: '/shipments', icon: Package, badge: '8' },
     { label: 'Disruptions', path: '/disruptions', icon: AlertTriangle, badge: '7' },
@@ -344,14 +255,11 @@ function Sidebar({ collapsed, path, navigate, onToggle }: { collapsed: boolean; 
 }
 
 function Header({
-  page, search, setSearch, onCopilot, notifications, setNotifications, profile, setProfile,
-  user, onOpenAuth, onSignOut, navigate, notify
+  page, search, setSearch, onCopilot, notifications, setNotifications, profile, setProfile
 }: {
   page: { title: string; subtitle: string }; search: string; setSearch: (value: string) => void;
   onCopilot: () => void; notifications: boolean; setNotifications: (value: boolean) => void;
   profile: boolean; setProfile: (value: boolean) => void;
-  user: any; onOpenAuth: () => void; onSignOut: () => void; navigate: (to: string) => void;
-  notify: (msg: string, tone?: 'success' | 'danger') => void;
 }) {
   return (
     <header className="topbar">
@@ -365,15 +273,6 @@ function Header({
           <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search shipments, assets, disruptions..." />
           <kbd>⌘K</kbd>
         </label>
-        
-        <button
-          className="small-btn"
-          style={{ background: '#131d2e', color: '#38bdf8', borderColor: '#20324f' }}
-          onClick={() => navigate('/landing')}
-          title="View Public Architecture & Landing Showcase"
-        >
-          <Globe size={14} /> Public Showcase
-        </button>
 
         <div className="engine"><span className="dot green" /> AI Engine: IBM watsonx.ai <b>•</b></div>
 
@@ -383,291 +282,34 @@ function Header({
             <i>4</i>
           </button>
           {notifications && (
-            <div className="popover notifications" style={{ width: 340, padding: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #202c42' }}>
-                <strong style={{ fontSize: 13, color: '#f1f5f9' }}>🔔 Live Cold Chain &amp; Shipment Alerts</strong>
-                <span className="badge red" style={{ fontSize: 9 }}>3 Critical</span>
-              </div>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 360, overflowY: 'auto' }}>
-                {/* Item 1: CTN-8801 / SHP-1042 */}
-                <div style={{ background: '#17253b', borderLeft: '3px solid #ef4444', borderRadius: 6, padding: '8px 10px', fontSize: 11 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#f1f5f9' }}>
-                    <span>🚨 CTN-8801 (SHP-1042)</span>
-                    <span style={{ color: '#ef4444' }}>10.3°C</span>
-                  </div>
-                  <div style={{ color: '#38bdf8', fontSize: 10, margin: '2px 0' }}>📦 mRNA Vaccines ($1.25M) · Asset TRK-204</div>
-                  <div style={{ color: '#7185a3', fontSize: 10 }}>⏱ Excursion 45m (+2.3°C &gt; 8°C SOP) · Spoilage 94%</div>
-                  <div style={{ color: '#10b981', fontSize: 10, marginTop: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>📍 Hub: Navi Mumbai (14.2 km)</span>
-                    <a href="#/cold-chain" onClick={() => setNotifications(false)} style={{ color: '#08b5e5', fontWeight: 700, textDecoration: 'none' }}>View →</a>
-                  </div>
-                </div>
-
-                {/* Item 2: CTN-8804 / SHP-1051 */}
-                <div style={{ background: '#17253b', borderLeft: '3px solid #f59e0b', borderRadius: 6, padding: '8px 10px', fontSize: 11 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#f1f5f9' }}>
-                    <span>📈 CTN-8804 (SHP-1051)</span>
-                    <span style={{ color: '#f59e0b' }}>8.9°C</span>
-                  </div>
-                  <div style={{ color: '#38bdf8', fontSize: 10, margin: '2px 0' }}>📦 Biopharma ($740K) · Asset TRK-089</div>
-                  <div style={{ color: '#7185a3', fontSize: 10 }}>⚡ Rate-of-Change Spike (+2.4°C/hr) · Spoilage 68%</div>
-                  <div style={{ color: '#10b981', fontSize: 10, marginTop: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>📍 Hub: Bengaluru Inland (18.5 km)</span>
-                    <a href="#/cold-chain" onClick={() => setNotifications(false)} style={{ color: '#08b5e5', fontWeight: 700, textDecoration: 'none' }}>View →</a>
-                  </div>
-                </div>
-
-                {/* Item 3: CTN-8819 / SHP-1078 */}
-                <div style={{ background: '#17253b', borderLeft: '3px solid #38bdf8', borderRadius: 6, padding: '8px 10px', fontSize: 11 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#f1f5f9' }}>
-                    <span>❄️ CTN-8819 (SHP-1078)</span>
-                    <span style={{ color: '#38bdf8' }}>1.1°C</span>
-                  </div>
-                  <div style={{ color: '#38bdf8', fontSize: 10, margin: '2px 0' }}>📦 Insulin Biologics ($1.15M) · Asset TRK-114</div>
-                  <div style={{ color: '#7185a3', fontSize: 10 }}>❄ Sub-Zero Freeze Risk (&lt;2°C SOP Min) · Spoilage 88%</div>
-                  <div style={{ color: '#10b981', fontSize: 10, marginTop: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>📍 Hub: Pune Biopharma (6.4 km)</span>
-                    <a href="#/cold-chain" onClick={() => setNotifications(false)} style={{ color: '#08b5e5', fontWeight: 700, textDecoration: 'none' }}>View →</a>
-                  </div>
-                </div>
-
-                {/* Item 4: Macro Port Strike */}
-                <div style={{ background: '#17253b', borderLeft: '3px solid #f59e0b', borderRadius: 6, padding: '8px 10px', fontSize: 11 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#f1f5f9' }}>
-                    <span>⚠️ Mumbai Port Strike</span>
-                    <span style={{ color: '#f59e0b' }}>72h Delay</span>
-                  </div>
-                  <div style={{ color: '#7185a3', fontSize: 10, marginTop: 2 }}>JNPT Dock Strike affecting 3 cold-chain reefers</div>
-                </div>
-              </div>
+            <div className="popover notifications">
+              <strong>Live Alerts</strong>
+              <p><span className="dot red" />2 critical shipments need review</p>
+              <p><span className="dot orange" />Mumbai Port Strike active (72h)</p>
+              <p><span className="dot cyan" />AI has 4 recommendations ready</p>
             </div>
           )}
         </div>
 
         <button className="copilot-btn" onClick={onCopilot}><Sparkles size={15} /> AI Copilot</button>
 
-        {user ? (
-          <div className="header-popover-wrap">
-            <button className="profile-btn" onClick={() => setProfile(!profile)}>
-              <span className="avatar">
-                {user.user_metadata?.full_name ? user.user_metadata.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() : 'OP'}
-              </span>
-              <span>{user.user_metadata?.full_name || user.email?.split('@')[0] || 'Operations Lead'}</span>
-              <ChevronDown size={14} />
-            </button>
-            {profile && (
-              <div className="popover profile-pop">
-                <strong>{user.user_metadata?.full_name || 'Operations Lead'}</strong>
-                <small>{user.email || 'lead.operator@chainguard.ai'}</small>
-                <div style={{ margin: '8px 0', borderTop: '1px solid #202c42' }} />
-                <button onClick={() => { setProfile(false); notify('Preferences saved.'); }}><Settings2 size={14} /> Account Settings</button>
-                <button onClick={() => { setProfile(false); onSignOut(); }} style={{ color: '#ef4444' }}><LogOut size={14} /> Sign Out</button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <button
-            className="small-btn"
-            style={{ background: '#08b5e5', color: '#001824', fontWeight: 700 }}
-            onClick={onOpenAuth}
-          >
-            <LogIn size={14} /> Sign In
+        <div className="header-popover-wrap">
+          <button className="profile-btn" onClick={() => setProfile(!profile)}>
+            <span className="avatar">CG</span>
+            <span>Operations Lead</span>
+            <ChevronDown size={14} />
           </button>
-        )}
-      </div>
-    </header>
-  );
-}
-
-function AuthModal({ onClose, onSuccess, notify }: { onClose: () => void; onSuccess: (user: any) => void; notify: (msg: string, tone?: 'success' | 'danger') => void }) {
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-
-  const handleDemoLogin = (role: string = 'Operations Lead') => {
-    const demoUser = {
-      id: 'demo-user-101',
-      email: 'lead.operator@chainguard.ai',
-      user_metadata: { full_name: 'Elena Vasquez', role: role, avatar_url: '' },
-      app_metadata: { provider: 'demo' }
-    };
-    try {
-      localStorage.setItem('chainguard_user', JSON.stringify(demoUser));
-    } catch {}
-    onSuccess(demoUser);
-    notify(`Signed in as ${demoUser.user_metadata.full_name} (${role})`);
-    onClose();
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) {
-      setErrorMsg('Please provide both email and password.');
-      return;
-    }
-    setLoading(true);
-    setErrorMsg('');
-    try {
-      if (isSignUp) {
-        const res = await signUpWithPassword(email, password, fullName);
-        if (res.error) throw res.error;
-        if (res.data?.user) {
-          await persistProfile(res.data.user, 'email');
-          localStorage.setItem('chainguard_user', JSON.stringify(res.data.user));
-          onSuccess(res.data.user);
-          notify('Account created and signed in successfully!');
-          onClose();
-        } else {
-          notify('Confirmation email sent. Please verify your email.');
-          onClose();
-        }
-      } else {
-        const res = await signInWithPassword(email, password);
-        if (res.error) throw res.error;
-        if (res.data?.user) {
-          await persistProfile(res.data.user, 'email');
-          localStorage.setItem('chainguard_user', JSON.stringify(res.data.user));
-          onSuccess(res.data.user);
-          notify(`Welcome back, ${res.data.user.user_metadata?.full_name || email}!`);
-          onClose();
-        }
-      }
-    } catch (err: any) {
-      console.warn('Auth error:', err);
-      setErrorMsg(err.message || 'Authentication failed. Please check credentials.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogle = async () => {
-    try {
-      await signInWithGoogle();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Google OAuth failed.');
-    }
-  };
-
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-card" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header" style={{ borderBottom: '1px solid #1f2d45' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(8, 181, 229, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#08b5e5' }}>
-              <ShieldCheck size={20} />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, fontSize: 15, color: '#f1f5f9' }}>{isSignUp ? 'Create Operator Account' : 'Operator Portal Sign In'}</h3>
-              <p style={{ margin: 0, fontSize: 11, color: '#7185a3' }}>ChainGuard AI Enterprise Supply Chain Control Tower</p>
-            </div>
-          </div>
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#7185a3', cursor: 'pointer' }}><X size={18} /></button>
-        </div>
-
-        <div style={{ padding: '20px 24px' }}>
-          {/* 1-Click Quick Demo Sign In for Hackathon Reviewers / Judges */}
-          <div style={{ background: 'linear-gradient(135deg, rgba(8, 181, 229, 0.12), rgba(16, 185, 129, 0.12))', border: '1px solid rgba(8, 181, 229, 0.3)', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: 5 }}>
-                <Sparkles size={13} /> 1-Click Quick Demo Access (Hackathon Judges)
-              </span>
-            </div>
-            <p style={{ fontSize: 11, color: '#cbd5e1', margin: '0 0 10px' }}>Instant access with full Operations Lead permissions without typing credentials:</p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                type="button"
-                className="small-btn"
-                style={{ flex: 1, background: '#08b5e5', color: '#001824', fontWeight: 700, justifyContent: 'center' }}
-                onClick={() => handleDemoLogin('Lead Logistics Controller')}
-              >
-                ⚡ Operations Lead
-              </button>
-              <button
-                type="button"
-                className="small-btn"
-                style={{ flex: 1, background: '#1e2d48', color: '#e2e8f0', justifyContent: 'center' }}
-                onClick={() => handleDemoLogin('Cold Chain QP Auditor')}
-              >
-                🔬 QP Auditor
-              </button>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', margin: '14px 0', gap: 10 }}>
-            <div style={{ flex: 1, height: 1, background: '#202c42' }} />
-            <span style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>or email credentials</span>
-            <div style={{ flex: 1, height: 1, background: '#202c42' }} />
-          </div>
-
-          {errorMsg && (
-            <div style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #ef4444', borderRadius: 6, padding: '8px 12px', color: '#fca5a5', fontSize: 11, marginBottom: 14 }}>
-              {errorMsg}
+          {profile && (
+            <div className="popover profile-pop">
+              <strong>Operations Control Tower</strong>
+              <small>IBM Hackathon Edition</small>
+              <button><Settings2 size={14} /> Preferences</button>
+              <button><ExternalLink size={14} /> Status: Online</button>
             </div>
           )}
-
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {isSignUp && (
-              <div>
-                <label style={{ display: 'block', fontSize: 11, color: '#94a3b8', marginBottom: 4, fontWeight: 600 }}>Full Name</label>
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="e.g. Priya Sharma"
-                  style={{ width: '100%', background: '#0e1726', border: '1px solid #202c42', borderRadius: 6, padding: '8px 12px', color: '#fff', fontSize: 12 }}
-                />
-              </div>
-            )}
-            <div>
-              <label style={{ display: 'block', fontSize: 11, color: '#94a3b8', marginBottom: 4, fontWeight: 600 }}>Operator Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="operator@company.com"
-                required
-                style={{ width: '100%', background: '#0e1726', border: '1px solid #202c42', borderRadius: 6, padding: '8px 12px', color: '#fff', fontSize: 12 }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 11, color: '#94a3b8', marginBottom: 4, fontWeight: 600 }}>Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                style={{ width: '100%', background: '#0e1726', border: '1px solid #202c42', borderRadius: 6, padding: '8px 12px', color: '#fff', fontSize: 12 }}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="small-btn"
-              style={{ width: '100%', marginTop: 6, padding: '10px 0', background: '#08b5e5', color: '#001824', fontWeight: 700, justifyContent: 'center', fontSize: 13 }}
-            >
-              {loading ? <RefreshCw size={14} className="animate-spin" /> : (isSignUp ? 'Create Account' : 'Sign In to Control Tower')}
-            </button>
-          </form>
-
-          <div style={{ marginTop: 16, textAlign: 'center', fontSize: 11, color: '#7185a3' }}>
-            {isSignUp ? 'Already have an operator account?' : "Don't have an operator profile yet?"}{' '}
-            <button
-              type="button"
-              onClick={() => { setIsSignUp(!isSignUp); setErrorMsg(''); }}
-              style={{ background: 'transparent', border: 'none', color: '#38bdf8', fontWeight: 700, cursor: 'pointer', padding: 0 }}
-            >
-              {isSignUp ? 'Sign In' : 'Sign Up'}
-            </button>
-          </div>
         </div>
       </div>
-    </div>
+    </header>
   );
 }
 
@@ -1319,181 +961,6 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
     } catch {
       return [];
     }
-  });
-
-  // Dispatch Notifications State & All Critical Conditions
-  const [notifSearch, setNotifSearch] = useState('');
-  const [notifFilter, setNotifFilter] = useState('ALL');
-  const [dispatchNotifs, setDispatchNotifs] = useState([
-    {
-      id: 'NOTIF-101',
-      shipment_id: 'SHP-1042',
-      container_id: 'CTN-8801',
-      action_type: 'DIVERT',
-      title: 'SHP-1042 / CTN-8801 — DIVERT TO COLD HUB',
-      recipient: 'driver (TRK-204) · ops',
-      time: '18:41:27',
-      condition_code: 'MAX_DURATION',
-      condition_title: '⏱️ Max Excursion Duration Exceeded (45m > 30m WHO Vaccine SOP Limit)',
-      condition_badge: 'L1 Bounds (+10.3°C) + Max Duration Breach',
-      severity: 'CRITICAL',
-      cargo: 'mRNA Vaccines',
-      cargo_value: '$1.25M',
-      asset: 'TRK-204 (Reefer 40ft)',
-      temp: '10.3°C',
-      peak_temp: '11.2°C',
-      sop_range: '2.0°C – 8.0°C',
-      excursion_duration_mins: 45,
-      spoilage_risk: '94% Spoilage Probability',
-      route: 'Mumbai Port → Frankfurt (West Coast Sea Corridor)',
-      nearest_hub: 'Navi Mumbai Cold Hub (14.2 km · 22m ETA · 420T Available)',
-      prescriptive_action: 'Divert container immediately to Navi Mumbai Central Cold Logistics Hub. Active compressor thermal breach.',
-      whatsapp_sent: true,
-    },
-    {
-      id: 'NOTIF-102',
-      shipment_id: 'SHP-1051',
-      container_id: 'CTN-8804',
-      action_type: 'DIVERT',
-      title: 'SHP-1051 / CTN-8804 — DIVERT TO INLAND HUB',
-      recipient: 'driver (TRK-089)',
-      time: '16:53:33',
-      condition_code: 'L2_RATE_OF_CHANGE',
-      condition_title: '📈 Rapid Thermal Climb (+2.4°C/hr Rate-of-Change Spike)',
-      condition_badge: 'L2 Rate-of-Change Alert',
-      severity: 'HIGH',
-      cargo: 'Biopharmaceuticals',
-      cargo_value: '$740K',
-      asset: 'TRK-089',
-      temp: '8.9°C',
-      peak_temp: '9.4°C',
-      sop_range: '2.0°C – 8.0°C',
-      excursion_duration_mins: 25,
-      spoilage_risk: '68% Spoilage Risk',
-      route: 'Chennai → Bengaluru',
-      nearest_hub: 'Bengaluru Inland Cold Terminal (18.5 km · 28m ETA)',
-      prescriptive_action: 'Reroute overland via Bengaluru inland freight terminal to avoid coastal cyclone thermal delays.',
-      whatsapp_sent: true,
-    },
-    {
-      id: 'NOTIF-103',
-      shipment_id: 'SHP-1067',
-      container_id: 'CTN-8812',
-      action_type: 'REPAIR',
-      title: 'SHP-1067 / CTN-8812 — REEFER COMPRESSOR REPAIR',
-      recipient: 'driver + ops technician',
-      time: '16:50:36',
-      condition_code: 'COMPRESSOR_REPAIR',
-      condition_title: '🔧 Primary Reefer Compressor Power Fluctuation & Pressure Drop',
-      condition_badge: 'Reefer Compressor Fault',
-      severity: 'HIGH',
-      cargo: 'Automotive Temp Sensors',
-      cargo_value: '$510K',
-      asset: 'TRK-312',
-      temp: '7.8°C',
-      peak_temp: '8.1°C',
-      sop_range: '2.0°C – 8.0°C',
-      excursion_duration_mins: 15,
-      spoilage_risk: '32% Risk',
-      route: 'Delhi → Nhava Sheva',
-      nearest_hub: 'Nhava Sheva Port Reefer Care (8.1 km · 14m ETA)',
-      prescriptive_action: 'Dispatch mobile repair unit or switch to backup diesel reefer compressor.',
-      whatsapp_sent: true,
-    },
-    {
-      id: 'NOTIF-104',
-      shipment_id: 'SHP-1078',
-      container_id: 'CTN-8819',
-      action_type: 'FREEZE_ALERT',
-      title: 'SHP-1078 / CTN-8819 — SUB-ZERO FREEZE DANGER',
-      recipient: 'driver (TRK-114) · ops',
-      time: '15:22:10',
-      condition_code: 'SUBZERO_FREEZE',
-      condition_title: '❄️ Sub-Zero Freeze Breach (1.1°C < 2.0°C SOP Min - Crystallization Risk)',
-      condition_badge: 'Freeze Risk (Crystallization)',
-      severity: 'CRITICAL',
-      cargo: 'Insulin & Liquid Biologics',
-      cargo_value: '$1.15M',
-      asset: 'TRK-114',
-      temp: '1.1°C',
-      peak_temp: '0.9°C',
-      sop_range: '2.0°C – 8.0°C',
-      excursion_duration_mins: 20,
-      spoilage_risk: '88% Risk (Protein Crystallization)',
-      route: 'Pune → Mumbai Air Cargo',
-      nearest_hub: 'Pune Biopharma Hub (6.4 km · 11m ETA)',
-      prescriptive_action: 'Increase reefer thermostat to +4.0°C immediately to prevent irreversible liquid vaccine freezing.',
-      whatsapp_sent: false,
-    },
-    {
-      id: 'NOTIF-105',
-      shipment_id: 'SHP-1082',
-      container_id: 'CTN-8822',
-      action_type: 'RESET',
-      title: 'SHP-1082 / CTN-8822 — SENSOR TELEMETRY FROZEN',
-      recipient: 'ops lead',
-      time: '14:15:05',
-      condition_code: 'L4_PERSISTENCE',
-      condition_title: '🛰️ L4 Persistence Alert (Static IoT Telemetry Frozen > 15 mins)',
-      condition_badge: 'Stuck Sensor / Data Dropout',
-      severity: 'MEDIUM',
-      cargo: 'Plasma Derivatives',
-      cargo_value: '$620K',
-      asset: 'TRK-105',
-      temp: '5.0°C (Static)',
-      peak_temp: '5.0°C',
-      sop_range: '2.0°C – 8.0°C',
-      excursion_duration_mins: 18,
-      spoilage_risk: '25% Risk',
-      route: 'Hyderabad → Goa',
-      nearest_hub: 'Hyderabad Cold Logistics (12.0 km)',
-      prescriptive_action: 'Ping IoT telemetry gateway to reset sensor stream and verify physical backup probe.',
-      whatsapp_sent: false,
-    },
-    {
-      id: 'NOTIF-106',
-      shipment_id: 'SHP-1090',
-      container_id: 'CTN-8830',
-      action_type: 'HUB_EXHAUSTED',
-      title: 'SHP-1090 / CTN-8830 — PRIMARY HUB FULL / ALTERNATE ROUTE',
-      recipient: 'ops lead',
-      time: '13:08:40',
-      condition_code: 'HUB_EXHAUSTION',
-      condition_title: '🏢 Primary Facility Full (Navi Mumbai Hub Available < 20T)',
-      condition_badge: 'Hub Capacity Alert',
-      severity: 'HIGH',
-      cargo: 'Monoclonal Antibodies',
-      cargo_value: '$890K',
-      asset: 'TRK-220',
-      temp: '9.1°C',
-      peak_temp: '9.5°C',
-      sop_range: '2.0°C – 8.0°C',
-      excursion_duration_mins: 35,
-      spoilage_risk: '74% Risk',
-      route: 'Thane → JNPT',
-      nearest_hub: 'Mundra Port Certified Cold Vault (Secondary: 145 km)',
-      prescriptive_action: 'Divert to secondary certified facility due to primary hub occupancy (96% full).',
-      whatsapp_sent: false,
-    }
-  ]);
-
-  const handleSendWhatsApp = (id: string) => {
-    setDispatchNotifs(prev => prev.map(n => n.id === id ? { ...n, whatsapp_sent: true } : n));
-    if (notify) {
-      const target = dispatchNotifs.find(n => n.id === id);
-      notify(`📲 WhatsApp alert sent to driver for ${target?.shipment_id || id} with complete thermal telemetry payload!`);
-    }
-  };
-
-  // Filtered Notifications List
-  const filteredNotifs = dispatchNotifs.filter(n => {
-    const matchesSearch = !notifSearch || 
-      n.shipment_id.toLowerCase().includes(notifSearch.toLowerCase()) ||
-      n.container_id.toLowerCase().includes(notifSearch.toLowerCase()) ||
-      n.title.toLowerCase().includes(notifSearch.toLowerCase()) ||
-      n.cargo.toLowerCase().includes(notifSearch.toLowerCase());
-    const matchesFilter = notifFilter === 'ALL' || n.condition_code === notifFilter;
-    return matchesSearch && matchesFilter;
   });
 
   // New Container Form State
@@ -2712,114 +2179,6 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
           </div>
         </Panel>
       </div>
-
-      {/* 4.5 LIVE COLD CHAIN DISPATCH NOTIFICATIONS & ALERTS */}
-      <Panel className="table-panel" style={{ marginTop: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h3 style={{ margin: 0, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8, color: '#f1f5f9' }}>
-              <span>📲</span> LIVE DISPATCH NOTIFICATIONS &amp; EXCURSION ALERTS
-            </h3>
-            <span className="badge red" style={{ fontSize: 11, padding: '3px 8px' }}>
-              {filteredNotifs.length} Active
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <label className="searchbox" style={{ width: 240, padding: '5px 10px', height: 32 }}>
-              <Search size={14} />
-              <input
-                value={notifSearch}
-                onChange={(e) => setNotifSearch(e.target.value)}
-                placeholder="Search ID, Shipment, Container..."
-                style={{ fontSize: 12 }}
-              />
-            </label>
-
-            <select
-              value={notifFilter}
-              onChange={(e) => setNotifFilter(e.target.value)}
-              className="filter-select"
-              style={{
-                background: '#172136',
-                border: '1px solid #243550',
-                color: '#d9e5f5',
-                padding: '5px 10px',
-                borderRadius: 6,
-                fontSize: 11,
-                fontWeight: 600
-              }}
-            >
-              <option value="ALL">All Conditions ({dispatchNotifs.length})</option>
-              <option value="MAX_DURATION">⏱️ Duration Exceeded</option>
-              <option value="L1_BOUNDS">🌡️ L1 Bounds Breach</option>
-              <option value="L2_RATE_OF_CHANGE">📈 Rate of Change Spike</option>
-              <option value="SUBZERO_FREEZE">❄️ Sub-Zero Freeze Risk</option>
-              <option value="L4_PERSISTENCE">🛰️ Sensor Freeze / Dropout</option>
-              <option value="HUB_EXHAUSTION">🏢 Hub Capacity Full</option>
-              <option value="COMPRESSOR_REPAIR">🔧 Compressor Repair</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="notif-cards-list">
-          {filteredNotifs.map((n) => (
-            <div key={n.id} className={`notif-card ${n.severity.toLowerCase()}`}>
-              {/* Header */}
-              <div className="notif-card-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 16 }}>
-                    {n.action_type === 'DIVERT' ? '🚨' : n.action_type === 'REPAIR' ? '🔧' : n.action_type === 'FREEZE_ALERT' ? '❄️' : '⚡'}
-                  </span>
-                  <strong style={{ fontSize: 14, color: '#f1f5f9' }}>{n.title}</strong>
-                  <span className="notif-channel-pill">📲 WhatsApp</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <small style={{ color: '#7185a3', fontSize: 11 }}>To: {n.recipient} · {n.time}</small>
-                  <span className={`badge ${n.severity.toLowerCase()}`}>{n.severity}</span>
-                </div>
-              </div>
-
-              {/* Condition Trigger Banner */}
-              <div className="notif-trigger-banner">
-                <AlertTriangle size={14} style={{ color: n.severity === 'CRITICAL' ? '#EF4444' : '#F59E0B', flexShrink: 0 }} />
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  <b>Trigger Condition:</b> <span style={{ color: '#f1f5f9' }}>{n.condition_title}</span>
-                  <span className="notif-cond-chip">{n.condition_badge}</span>
-                </div>
-              </div>
-
-              {/* Comprehensive Details Grid */}
-              <div className="notif-details-grid">
-                <div>📦 <b>Cargo &amp; Value:</b> {n.cargo} (<b style={{ color: '#10B981' }}>{n.cargo_value}</b>)</div>
-                <div>🚚 <b>Assigned Asset:</b> {n.asset}</div>
-                <div>📍 <b>Corridor Route:</b> {n.route}</div>
-                <div>🌡 <b>Live Temp:</b> <b style={{ color: n.severity === 'CRITICAL' ? '#EF4444' : '#F59E0B' }}>{n.temp}</b> (Peak {n.peak_temp} · SOP {n.sop_range})</div>
-                <div>⏱ <b>Excursion Duration:</b> {n.excursion_duration_mins} mins</div>
-                <div>⚠️ <b>Spoilage Risk:</b> <b style={{ color: n.severity === 'CRITICAL' ? '#EF4444' : '#F59E0B' }}>{n.spoilage_risk}</b></div>
-                <div style={{ gridColumn: '1 / -1' }}>🏢 <b>Nearest Certified Hub:</b> {n.nearest_hub}</div>
-                <div style={{ gridColumn: '1 / -1', color: '#08b5e5' }}>💡 <b>Prescriptive Action:</b> {n.prescriptive_action}</div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="notif-card-actions">
-                <button
-                  className="small-btn whatsapp-btn"
-                  onClick={() => handleSendWhatsApp(n.id)}
-                >
-                  <Send size={12} /> {n.whatsapp_sent ? 'WhatsApp Alert Sent ✓' : 'Send WhatsApp ►'}
-                </button>
-                <button
-                  className="small-btn divert-btn"
-                  onClick={() => handleExecuteAction(n.container_id, n.action_type === 'REPAIR' ? 'REPAIR' : 'DIVERT_HUB')}
-                >
-                  {n.action_type === 'DIVERT' ? '🚨 DIVERT NOW...' : n.action_type === 'REPAIR' ? '🔧 REQUEST REPAIR...' : '⚡ EXECUTE ACTION...'}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Panel>
 
       {/* 5. COLD CHAIN ASSET TABLE */}
       <Panel className="table-panel">
