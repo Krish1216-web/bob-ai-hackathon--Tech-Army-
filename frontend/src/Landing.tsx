@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import MapboxControlTower3D from './MapboxControlTower3D';
 import {
   ArrowRight, CheckCircle2, FlaskConical,
   LayoutDashboard, Menu, Package, ShieldCheck, Ship, Sparkles, Thermometer, Truck, X,
@@ -139,27 +140,8 @@ export default function Landing({ onLaunch }: { onLaunch: () => void }) {
                     <div className="preview-kpi"><b className="green">71.4%</b><span>Utilisation</span></div>
                     <div className="preview-kpi"><b className="cyan">$4.8M</b><span>Cargo at Risk</span></div>
                   </div>
-                  <div className="preview-map">
-                    <svg viewBox="0 0 400 160" className="preview-svg">
-                      <rect width="400" height="160" fill="#0d1525" rx="8" />
-                      <line x1="120" y1="110" x2="200" y2="50" stroke="#168BFF" strokeWidth="1.5" />
-                      <line x1="200" y1="50" x2="320" y2="30" stroke="#168BFF" strokeWidth="1.5" />
-                      <line x1="120" y1="110" x2="180" y2="140" stroke="#168BFF" strokeWidth="1.5" />
-                      {activeDisruption === 'mumbai' ? (
-                        <>
-                          <line x1="120" y1="110" x2="80" y2="70" stroke="#FF414D" strokeWidth="2" strokeDasharray="5 3" />
-                          <line x1="80" y1="70" x2="320" y2="30" stroke="#08B5E5" strokeWidth="1.5" strokeDasharray="4 3" />
-                        </>
-                      ) : (
-                        <line x1="180" y1="140" x2="320" y2="30" stroke="#FF8A00" strokeWidth="2" strokeDasharray="5 3" />
-                      )}
-                      {[[120,110,'red'],[80,70,'cyan'],[200,50,'blue'],[320,30,'green'],[180,140,'orange']].map(([x,y,c],i) => (
-                        <g key={i}>
-                          <circle cx={x as number} cy={y as number} r="6" fill="none" stroke={`var(--${c})`} opacity=".4" />
-                          <circle cx={x as number} cy={y as number} r="3" fill={`var(--${c})`} />
-                        </g>
-                      ))}
-                    </svg>
+                  <div className="preview-map" style={{ height: 380, marginTop: 10, marginBottom: 10 }}>
+                    <MapboxControlTower3D />
                   </div>
                   <div className="preview-disruptions">
                     <div className={`preview-dis ${activeDisruption === 'mumbai' ? 'selected' : ''}`} onClick={() => setActiveDisruption('mumbai')} style={{ cursor: 'pointer' }}>
