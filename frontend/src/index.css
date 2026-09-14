@@ -873,51 +873,149 @@
 }
 
 @media print {
-  body * {
-    visibility: hidden;
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
   }
-  .printable-audit-report, .printable-audit-report * {
-    visibility: visible;
-  }
-  .printable-audit-report {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
+  
+  html, body {
     background: #ffffff !important;
-    color: #000000 !important;
-    padding: 20px;
-  }
-  .audit-modal-card {
-    border: none;
-    box-shadow: none;
-    background: #ffffff !important;
-  }
-  .audit-certificate {
-    background: #ffffff !important;
-    color: #111827 !important;
-    border: 1px solid #cccccc;
-  }
-  .audit-meta-grid, .audit-section-box, .signature-block {
-    background: #f8fafc !important;
-    border: 1px solid #e2e8f0 !important;
     color: #0f172a !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
   }
-  .audit-meta-grid div strong, .audit-section-box strong, .signature-block strong {
-    color: #0f172a !important;
-  }
-  .audit-header-banner {
-    border-bottom: 2px solid #0284c7;
-  }
-  .audit-title h2 {
-    color: #0284c7 !important;
-  }
-  .modal-backdrop {
-    background: #ffffff !important;
-    position: static;
-  }
-  .modal-header, .modal-footer {
+
+  /* Hide app navigation and underlying dashboard */
+  .app-layout, .sidebar, .header, .kpi-grid, .map-panel, .cold-grid, .table-panel, .copilot-panel, .toast {
     display: none !important;
+  }
+
+  .modal-backdrop {
+    display: block !important;
+    position: static !important;
+    background: #ffffff !important;
+    width: 100% !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    z-index: 99999 !important;
+  }
+
+  .modal-backdrop > *:not(.printable-audit-report) {
+    display: none !important;
+  }
+
+  .printable-audit-report {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .printable-audit-report .modal-header,
+  .printable-audit-report .modal-footer,
+  .printable-audit-report .no-print {
+    display: none !important;
+  }
+
+  .printable-audit-report .audit-scroll-body {
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  /* Ensure the certificate has a clean high-contrast black/dark blue on white format */
+  .printable-audit-report .audit-certificate {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 2px solid #0284c7 !important;
+    border-radius: 6px !important;
+    padding: 20px !important;
+    box-shadow: none !important;
+  }
+
+  .printable-audit-report .audit-header-banner {
+    border-bottom: 2px solid #0284c7 !important;
+    padding-bottom: 12px !important;
+  }
+
+  .printable-audit-report .audit-title h2 {
+    color: #0284c7 !important;
+    font-size: 15pt !important;
+    font-weight: 800 !important;
+    margin: 0 0 4px !important;
+  }
+
+  .printable-audit-report .audit-title p {
+    color: #475569 !important;
+    font-size: 9pt !important;
+  }
+
+  .printable-audit-report .stamp-badge {
+    background: #e0f2fe !important;
+    border: 1.5px solid #0284c7 !important;
+    color: #0284c7 !important;
+    font-weight: 700 !important;
+  }
+
+  .printable-audit-report .audit-meta-grid,
+  .printable-audit-report .audit-section-box,
+  .printable-audit-report .signature-block,
+  .printable-audit-report .audit-tile-box {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 4px !important;
+  }
+
+  .printable-audit-report .audit-meta-grid span,
+  .printable-audit-report .audit-section-box small,
+  .printable-audit-report .signature-block span {
+    color: #64748b !important;
+    font-weight: 700 !important;
+  }
+
+  .printable-audit-report .audit-meta-grid strong,
+  .printable-audit-report .audit-section-box strong,
+  .printable-audit-report .signature-block strong {
+    color: #0f172a !important;
+    font-weight: 700 !important;
+  }
+
+  .printable-audit-report .audit-section-box h4 {
+    color: #0369a1 !important;
+    font-weight: 800 !important;
+  }
+
+  .printable-audit-report .audit-telemetry-table {
+    border: 1px solid #cbd5e1 !important;
+    background: #ffffff !important;
+  }
+
+  .printable-audit-report .audit-telemetry-table th {
+    background: #f1f5f9 !important;
+    color: #334155 !important;
+    border-bottom: 1.5px solid #cbd5e1 !important;
+    font-weight: 700 !important;
+  }
+
+  .printable-audit-report .audit-telemetry-table td {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border-top: 1px solid #e2e8f0 !important;
+  }
+
+  .printable-audit-report * {
+    text-shadow: none !important;
+    box-shadow: none !important;
   }
 }
 
