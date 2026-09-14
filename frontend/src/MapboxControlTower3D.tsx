@@ -21,7 +21,57 @@ export interface MapboxControlTower3DProps {
   loading?: boolean;
 }
 
-// Sample rich telemetry data if props are omitted
+// Standalone self-hosted Basemap Styles (Guarantees visible rendering even without secret token)
+const darkGlobeStyle: any = {
+  version: 8,
+  sources: {
+    'carto-dark': {
+      type: 'raster',
+      tiles: [
+        'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        'https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      ],
+      tileSize: 256,
+      attribution: '&copy; CARTO &copy; OpenStreetMap'
+    }
+  },
+  layers: [
+    {
+      id: 'carto-dark-layer',
+      type: 'raster',
+      source: 'carto-dark',
+      minzoom: 0,
+      maxzoom: 22
+    }
+  ]
+};
+
+const satelliteGlobeStyle: any = {
+  version: 8,
+  sources: {
+    'esri-satellite': {
+      type: 'raster',
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+      ],
+      tileSize: 256,
+      attribution: '&copy; Esri World Imagery'
+    }
+  },
+  layers: [
+    {
+      id: 'esri-satellite-layer',
+      type: 'raster',
+      source: 'esri-satellite',
+      minzoom: 0,
+      maxzoom: 22
+    }
+  ]
+};
+
+// Default Telemetry Data
 const defaultContainersData: ColdContainerMapItem[] = [
   {
     id: 'CTN-8801',
@@ -129,21 +179,18 @@ const defaultContainersData: ColdContainerMapItem[] = [
   }
 ];
 
-// Idle Fleet Assets
 const idleAssetsData = [
-  { id: 'TRK-204-IDLE', name: 'Idle Reefer Truck TRK-204', location: 'Mumbai Port Gate 4', lat: 18.9600, lng: 72.8500, idleHours: '14h idle', cargoValue: '$0 (Idle)', util: '18.5%', matchScore: '91% Match' },
-  { id: 'CTN-117-IDLE', name: 'Idle Reefer Container CTN-117', location: 'Mundra Logistics Park', lat: 22.8450, lng: 69.7200, idleHours: '22h idle', cargoValue: '$0 (Idle)', util: '12.0%', matchScore: '87% Match' },
-  { id: 'TRK-089-IDLE', name: 'Idle Cargo Reefer TRK-089', location: 'Pune Inland Depot', lat: 18.5204, lng: 73.8567, idleHours: '8h idle', cargoValue: '$0 (Idle)', util: '24.3%', matchScore: '83% Match' }
+  { id: 'TRK-204-IDLE', name: 'Idle Reefer Truck TRK-204', location: 'Mumbai Port Gate 4', lat: 18.9600, lng: 72.8500, idleHours: '14h idle', util: '18.5%', matchScore: '91% Match' },
+  { id: 'CTN-117-IDLE', name: 'Idle Reefer Container CTN-117', location: 'Mundra Logistics Park', lat: 22.8450, lng: 69.7200, idleHours: '22h idle', util: '12.0%', matchScore: '87% Match' },
+  { id: 'TRK-089-IDLE', name: 'Idle Cargo Reefer TRK-089', location: 'Pune Inland Depot', lat: 18.5204, lng: 73.8567, idleHours: '8h idle', util: '24.3%', matchScore: '83% Match' }
 ];
 
-// Cargo Vessels at sea
 const cargoVesselsData = [
   { id: 'VSL-OCEAN-STAR', name: 'MV Ocean Star', lat: 15.5000, lng: 68.2000, cargo: 'Perishable Produce & Bio-Pharma', route: 'Mumbai → Rotterdam', speed: '18.4 knots', status: 'Rerouting South of Disruption' },
   { id: 'VSL-PACIFIC-EXPRESS', name: 'MV Pacific Express', lat: 10.2000, lng: 85.4000, cargo: 'Industrial Electronics & Vaccines', route: 'Chennai → Singapore', speed: '21.0 knots', status: 'On Schedule' },
   { id: 'VSL-RED-SEA-TRADER', name: 'MV Red Sea Trader', lat: 20.8000, lng: 60.1000, cargo: 'High Value Perishables', route: 'Mundra → Dubai', speed: '16.2 knots', status: 'Normal Transit' }
 ];
 
-// Disruption Zones
 const disruptionZones = [
   {
     id: 'DISRUPT-MUMBAI',
@@ -187,23 +234,20 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
 
-  // Mapbox & Script State
   const [scriptLoaded, setScriptLoaded] = useState<boolean>(false);
-  const [mapInitialized, setMapInitialized] = useState<boolean>(false);
   const [terrainEnabled, setTerrainEnabled] = useState<boolean>(true);
   const [disruptionsEnabled, setDisruptionsEnabled] = useState<boolean>(true);
   const [idleAssetsEnabled, setIdleAssetsEnabled] = useState<boolean>(true);
   const [mapStyle, setMapStyle] = useState<'dark' | 'satellite'>('dark');
   const [activeFlyTo, setActiveFlyTo] = useState<string | null>(null);
 
-  // Load Mapbox GL JS CDN dynamically if window.mapboxgl is absent
+  // Load Mapbox GL JS CDN dynamically
   useEffect(() => {
     if (window.mapboxgl) {
       setScriptLoaded(true);
       return;
     }
 
-    // Check if stylesheet is added
     if (!document.querySelector('link[href*="mapbox-gl.css"]')) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
@@ -211,42 +255,43 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
       document.head.appendChild(link);
     }
 
-    // Load Script
     const script = document.createElement('script');
     script.src = 'https://api.mapbox.com/mapbox-gl-js/v3.9.0/mapbox-gl.js';
     script.async = true;
-    script.onload = () => {
-      setScriptLoaded(true);
-    };
-    script.onerror = () => {
-      console.warn('Mapbox script load fallback triggered');
-      setScriptLoaded(true);
-    };
+    script.onload = () => setScriptLoaded(true);
+    script.onerror = () => setScriptLoaded(true);
     document.head.appendChild(script);
   }, []);
 
-  // Initialize Mapbox GL JS v3 3D Globe when script is available
+  // Initialize Mapbox GL JS 3D Globe with robust tile fallback
   useEffect(() => {
-    if (!scriptLoaded || !mapContainerRef.current || mapRef.current) return;
+    if (!scriptLoaded || !mapContainerRef.current) return;
+    if (!window.mapboxgl) return;
 
-    if (!window.mapboxgl) {
-      console.warn('Mapbox GL object unavailable');
-      return;
+    // Remove existing instance if changing style
+    if (mapRef.current) {
+      try {
+        mapRef.current.remove();
+      } catch (e) {}
+      mapRef.current = null;
     }
 
     try {
-      const mapboxToken = (import.meta.env.VITE_MAPBOX_TOKEN as string) ||
-        'pk.eyJ1IjoibWFwYm94Y29udHJvbHRvd2VyIiwiYSI6ImNtODFhYnJndzBhdDIya29uMXJwd2p2dnIifQ.xyz_mock_token_demo';
+      const customToken = (import.meta.env.VITE_MAPBOX_TOKEN as string) || '';
+      const hasCustomToken = customToken && !customToken.includes('mock');
 
-      window.mapboxgl.accessToken = mapboxToken;
+      if (hasCustomToken) {
+        window.mapboxgl.accessToken = customToken;
+      }
 
-      const styleUrl = mapStyle === 'satellite'
-        ? 'mapbox://styles/mapbox/satellite-v9'
-        : 'mapbox://styles/mapbox/dark-v11';
+      // Choose official style if custom token present, otherwise choose robust self-hosted tiles
+      const chosenStyle = hasCustomToken
+        ? (mapStyle === 'satellite' ? 'mapbox://styles/mapbox/satellite-v9' : 'mapbox://styles/mapbox/dark-v11')
+        : (mapStyle === 'satellite' ? satelliteGlobeStyle : darkGlobeStyle);
 
       const map = new window.mapboxgl.Map({
         container: mapContainerRef.current,
-        style: styleUrl,
+        style: chosenStyle,
         center: [78.9629, 20.5937],
         zoom: 2.85,
         pitch: 50,
@@ -256,10 +301,9 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
       });
 
       mapRef.current = map;
-      setMapInitialized(true);
 
       map.on('load', () => {
-        // Atmosphere & Fog Styling
+        // Space Fog & Atmosphere Styling
         try {
           map.setFog({
             color: '#020813',
@@ -268,78 +312,39 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
             'horizon-blend': 0.08,
             'star-intensity': 0.7,
           });
-        } catch (e) {
-          console.warn('Fog:', e);
-        }
+        } catch (e) {}
 
-        // 3D Terrain DEM
-        try {
-          if (!map.getSource('mapbox-dem')) {
-            map.addSource('mapbox-dem', {
-              type: 'raster-dem',
-              url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
-              tileSize: 512,
-              maxzoom: 14,
-            });
-          }
-          if (terrainEnabled) {
-            map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
-          }
-        } catch (err) {
-          console.warn('Terrain DEM:', err);
-        }
-
-        // 3D Extruded Buildings Layer
-        try {
-          const layers = map.getStyle()?.layers || [];
-          const labelLayerId = layers.find(
-            (layer: any) => layer.type === 'symbol' && layer.layout && layer.layout['text-field']
-          )?.id;
-
-          if (!map.getLayer('3d-buildings')) {
-            map.addLayer(
-              {
-                id: '3d-buildings',
-                source: 'composite',
-                'source-layer': 'building',
-                filter: ['==', 'extrude', 'true'],
-                type: 'fill-extrusion',
-                minzoom: 12,
-                paint: {
-                  'fill-extrusion-color': '#0f2342',
-                  'fill-extrusion-height': [
-                    'interpolate',
-                    ['linear'],
-                    ['zoom'],
-                    12,
-                    0,
-                    12.5,
-                    ['get', 'height'],
-                  ],
-                  'fill-extrusion-base': [
-                    'interpolate',
-                    ['linear'],
-                    ['zoom'],
-                    12,
-                    0,
-                    12.5,
-                    ['get', 'min_height'],
-                  ],
-                  'fill-extrusion-opacity': 0.75,
-                },
-              },
-              labelLayerId
-            );
-          }
-        } catch (e) {
-          console.warn('Buildings:', e);
+        // Add 3D Terrain DEM if custom token available
+        if (hasCustomToken) {
+          try {
+            if (!map.getSource('mapbox-dem')) {
+              map.addSource('mapbox-dem', {
+                type: 'raster-dem',
+                url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+                tileSize: 512,
+                maxzoom: 14,
+              });
+            }
+            if (terrainEnabled) {
+              map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
+            }
+          } catch (err) {}
         }
 
         renderDisruptionZonesAndRoutes(map);
         renderMarkers(map);
       });
+
+      map.on('error', (e: any) => {
+        // If official Mapbox style throws 401, fallback to robust CARTO/Esri tiles
+        if (hasCustomToken && e && e.error && (e.error.status === 401 || e.error.status === 403)) {
+          console.warn('Mapbox token error, applying open tiles fallback...');
+          map.setStyle(mapStyle === 'satellite' ? satelliteGlobeStyle : darkGlobeStyle);
+        }
+      });
+
     } catch (err) {
-      console.warn('Mapbox init catch:', err);
+      console.warn('Mapbox init error:', err);
     }
 
     return () => {
@@ -353,7 +358,7 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
     };
   }, [scriptLoaded, mapStyle]);
 
-  // Update Markers & Layers when containers or toggles update
+  // Update Markers & Layers
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -380,7 +385,7 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
     markersRef.current = [];
   };
 
-  // Helper to create GeoJSON circular polygon for Disruption Zones
+  // Helper for Circular GeoJSON Disruption Polygons
   const createCircleGeoJSON = (center: [number, number], radiusKm: number, points = 64) => {
     const coords: [number, number][] = [];
     const km = radiusKm;
@@ -442,7 +447,7 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
             source: sourceId,
             paint: {
               'fill-color': dz.color,
-              'fill-opacity': 0.25,
+              'fill-opacity': 0.35,
             },
           });
         }
@@ -454,14 +459,14 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
             source: sourceId,
             paint: {
               'line-color': dz.color,
-              'line-width': 2,
+              'line-width': 2.5,
               'line-dasharray': [3, 2],
             },
           });
         }
       });
 
-      // 3D GeoJSON Shipping Routes
+      // 3D GeoJSON Route Corridors
       const originalRouteGeoJSON = {
         type: 'Feature',
         geometry: {
@@ -504,7 +509,7 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
           source: 'original-shipping-route',
           paint: {
             'line-color': '#08B5E5',
-            'line-width': 3.5,
+            'line-width': 4,
             'line-opacity': 0.85,
           },
         });
@@ -522,25 +527,25 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
           source: 'rerouted-shipping-route',
           paint: {
             'line-color': '#F59E0B',
-            'line-width': 4,
+            'line-width': 4.5,
             'line-dasharray': [4, 4],
             'line-opacity': 0.95,
           },
         });
       }
     } catch (e) {
-      console.warn('Routes rendering:', e);
+      console.warn('Routes rendering error:', e);
     }
   };
 
-  // Render Custom HTML Markers with Popups & Breach Pulsing Rings
+  // Render Custom Markers (Containers, Idle Assets, Vessels)
   const renderMarkers = (map: any) => {
     clearMarkers();
     if (!window.mapboxgl) return;
 
     const displayContainers = containers.length > 0 ? containers : defaultContainersData;
 
-    // A. Active Cold Chain Container Markers
+    // A. Active Cold Chain Containers
     displayContainers.forEach((c) => {
       const isSelected = c.id === selectedContainerId;
       const isCritical = c.status === 'CRITICAL';
@@ -665,7 +670,7 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
       } catch (e) {}
     });
 
-    // B. Idle Fleet Assets Markers
+    // B. Idle Fleet Assets
     if (idleAssetsEnabled) {
       idleAssetsData.forEach((asset) => {
         const el = document.createElement('div');
@@ -714,7 +719,7 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
       });
     }
 
-    // C. Cargo Vessels at sea
+    // C. Cargo Vessels
     cargoVesselsData.forEach((vessel) => {
       const el = document.createElement('div');
       el.className = 'mapbox-custom-marker';
@@ -762,7 +767,7 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
     });
   };
 
-  // Fly-To Navigation Handlers
+  // Fly-To Handlers
   const handleFlyToPortStrike = () => {
     setActiveFlyTo('strike');
     const map = mapRef.current;
