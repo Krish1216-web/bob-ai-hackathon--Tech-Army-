@@ -10,8 +10,8 @@ import {
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { actions as defaultActions, disruptions as defaultDisruptions, opportunities as defaultOpportunities, shipments as defaultShipments, type AIAction, type Severity, type Shipment } from './data';
 import { api } from './api';
-import Landing from './Landing';
 import { LiveColdMap, type ColdContainerMapItem, type ColdHubMapItem, type ColdRouteMapItem } from './LiveColdMap';
+import { MapboxControlTower3D } from './MapboxControlTower3D';
 
 const cyan = '#08B5E5';
 const defaultTrendData = [{ t: '00:00', v: 68 }, { t: '02:00', v: 67.8 }, { t: '04:00', v: 66.5 }, { t: '06:00', v: 67 }, { t: '08:00', v: 69.2 }, { t: '10:00', v: 70.8 }, { t: '12:00', v: 72 }, { t: '14:00', v: 71.8 }, { t: '16:00', v: 73 }, { t: '18:00', v: 72.5 }, { t: '20:00', v: 71.2 }, { t: '22:00', v: 70.8 }];
@@ -411,37 +411,9 @@ function ControlTower({ navigate, fleetUtilisation, pendingActions, disruptions,
 }
 
 function RiskMap() {
-  const nodes = [
-    { name: 'Mumbai', x: 95, y: 160, tone: 'red' },
-    { name: 'Mundra', x: 75, y: 113, tone: 'cyan' },
-    { name: 'Ahmedabad', x: 123, y: 100, tone: 'yellow' },
-    { name: 'Delhi', x: 190, y: 50, tone: 'blue' },
-    { name: 'Dubai', x: 16, y: 82, tone: 'blue' },
-    { name: 'Frankfurt', x: 218, y: 16, tone: 'green' },
-    { name: 'Chennai', x: 147, y: 202, tone: 'orange' },
-    { name: 'Singapore', x: 245, y: 218, tone: 'blue' }
-  ];
   return (
-    <div className="risk-map">
-      <svg viewBox="0 0 280 240" role="img" aria-label="Network risk map">
-        <defs>
-          <radialGradient id="mapfade"><stop stopColor="#16233a" /><stop offset="1" stopColor="#101827" /></radialGradient>
-        </defs>
-        <rect width="280" height="240" fill="url(#mapfade)" rx="10" />
-        <path className="route active-route" d="M95 160 L123 100 L190 50 L218 16" />
-        <path className="route active-route" d="M95 160 L147 202 L245 218" />
-        <path className="route alt-route" d="M75 113 L218 16" />
-        <path className="route alt-route" d="M75 113 L245 218" />
-        <path className="route warning-route" d="M123 100 L147 202" />
-        <path className="route disrupted-route" d="M95 160 L75 113" />
-        {nodes.map((node) => (
-          <g key={node.name} className="map-node" transform={`translate(${node.x},${node.y})`}>
-            <circle className={`node-ring ${node.tone}`} r="7" />
-            <circle className={`node-core ${node.tone}`} r="3" />
-            <text x="10" y="4">{node.name}</text>
-          </g>
-        ))}
-      </svg>
+    <div style={{ marginTop: 10 }}>
+      <MapboxControlTower3D />
     </div>
   );
 }
