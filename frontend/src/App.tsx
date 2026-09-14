@@ -205,12 +205,16 @@ function App() {
   if (path === '/landing') {
     return (
       <div className="landing-page-wrapper">
-        <Landing onLaunch={() => navigate('/')} onSignIn={() => setShowAuthModal(true)} />
+        <Landing onLaunch={() => setShowAuthModal(true)} onSignIn={() => setShowAuthModal(true)} />
         {copilot && <Copilot onClose={() => setCopilot(false)} />}
         {showAuthModal && (
           <AuthModal
             onClose={() => setShowAuthModal(false)}
-            onSuccess={(u) => setUser(u)}
+            onSuccess={(u) => {
+              setUser(u);
+              setShowAuthModal(false);
+              navigate('/');
+            }}
             notify={notify}
           />
         )}
@@ -291,7 +295,11 @@ function App() {
       {showAuthModal && (
         <AuthModal
           onClose={() => setShowAuthModal(false)}
-          onSuccess={(u) => setUser(u)}
+          onSuccess={(u) => {
+            setUser(u);
+            setShowAuthModal(false);
+            navigate('/');
+          }}
           notify={notify}
         />
       )}
