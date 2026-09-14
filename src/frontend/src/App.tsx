@@ -4,6 +4,7 @@ import {
   ChevronRight, CircleDollarSign, Clock3, Container, Download, ExternalLink, Filter,
   FlaskConical, Gauge, LayoutDashboard, MapPin, Package, Search, Send, Settings2, ShieldCheck,
   Ship, Sparkles, Thermometer, Truck, X, XCircle, Zap, Warehouse, ShieldAlert, Snowflake, Activity,
+  Plus, RefreshCw, Sliders,
   type LucideIcon,
 } from 'lucide-react';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -947,44 +948,69 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
   const [telemetry, setTelemetry] = useState<any>(null);
   const [summary, setSummary] = useState<any>(null);
   const [selectedId, setSelectedId] = useState<string>('CTN-8801');
+  const [diversionMode, setDiversionMode] = useState<'SAFETY' | 'BALANCED' | 'ECO'>('BALANCED');
   const [loading, setLoading] = useState<boolean>(false);
   const [actionInProgress, setActionInProgress] = useState<boolean>(false);
+  const [isBulkImporting, setIsBulkImporting] = useState<boolean>(false);
+  const [isSimulating, setIsSimulating] = useState<boolean>(false);
+  const [showAddModal, setShowAddModal] = useState<boolean>(false);
 
-  const loadAllColdChainData = async () => {
+  // New Container Form State
+  const [newContainer, setNewContainer] = useState({
+    container_id: 'CTN-8850',
+    shipment_id: 'SHP-1049',
+    cargo_type: 'Biopharma / Vaccines',
+    safe_min_temp: 2.0,
+    safe_max_temp: 8.0,
+    latitude: 19.07,
+    longitude: 72.87,
+    cargo_value: 950000,
+    initial_temperature: 5.2
+  });
+
+  const loadAllColdChainData = async (mode: string = diversionMode) => {
     try {
+      setLoading(true);
       const [mRes, sRes] = await Promise.all([
-        api.getColdChainMap(),
+        api.getColdChainMap(mode),
         api.getColdChainSummary()
       ]);
       if (mRes) setMapData(mRes);
       if (sRes) setSummary(sRes);
     } catch (e) {
       console.warn('Failed to load cold chain map/summary data:', e);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const loadSelectedTelemetry = async (shipmentId: string = 'SHP-1042') => {
+  const loadSelectedTelemetry = async (containerId: string = selectedId) => {
     try {
-      const telData = await api.getShipmentColdChain(shipmentId);
-      if (telData) setTelemetry(telData);
+      const telData = await api.getContainerTelemetry(containerId);
+      if (telData) {
+        setTelemetry(telData);
+      } else {
+        // Fallback to shipment telemetry if container telemetry not found
+        const fallbackTel = await api.getShipmentColdChain('SHP-1042');
+        if (fallbackTel) setTelemetry(fallbackTel);
+      }
     } catch (e) {
       console.warn('Failed to load container telemetry:', e);
     }
   };
 
   useEffect(() => {
-    loadAllColdChainData();
-    loadSelectedTelemetry('SHP-1042');
+    loadAllColdChainData(diversionMode);
+    loadSelectedTelemetry(selectedId);
 
     // Controlled 8-second live sync polling
     const timer = setInterval(() => {
-      loadAllColdChainData();
+      loadAllColdChainData(diversionMode);
     }, 8000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [diversionMode]);
 
-  // Sync telemetry when selected container changes
   const containers: ColdContainerMapItem[] = mapData?.containers || [];
   const hubs: ColdHubMapItem[] = mapData?.hubs || [];
   const routes: ColdRouteMapItem[] = mapData?.routes || [];
@@ -1034,10 +1060,13 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
 
   const handleSelectContainer = (cid: string) => {
     setSelectedId(cid);
-    const target = containers.find(c => c.id === cid);
-    if (target) {
-      loadSelectedTelemetry(target.shipment_id);
-    }
+    loadSelectedTelemetry(cid);
+  };
+
+  const handleModeChange = (mode: 'SAFETY' | 'BALANCED' | 'ECO') => {
+    setDiversionMode(mode);
+    loadAllColdChainData(mode);
+    if (notify) notify(`Switched Economic Diversion Mode to ${mode}`);
   };
 
   const handleExecuteAction = async (cid: string, actionType: string) => {
@@ -1045,8 +1074,8 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
     try {
       const res = await api.executeColdChainAction(cid, actionType);
       await Promise.all([
-        loadAllColdChainData(),
-        loadSelectedTelemetry(selectedContainer.shipment_id)
+        loadAllColdChainData(diversionMode),
+        loadSelectedTelemetry(cid)
       ]);
       if (notify) {
         notify(res?.message || `Action ${actionType} executed for container ${cid}.`);
@@ -1055,6 +1084,57 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
       console.warn('Action execution error:', e);
     } finally {
       setActionInProgress(false);
+    }
+  };
+
+  const handleSimulateExcursion = async (targetTemp: number, durationMins: number, desc?: string) => {
+    setIsSimulating(true);
+    try {
+      const res = await api.simulateExcursion({
+        container_id: selectedContainer.id,
+        target_temp: targetTemp,
+        duration_mins: durationMins,
+        description: desc
+      });
+      await Promise.all([
+        loadAllColdChainData(diversionMode),
+        loadSelectedTelemetry(selectedContainer.id)
+      ]);
+      if (notify) {
+        notify(res?.message || `Simulated excursion: ${targetTemp}°C on ${selectedContainer.id}`);
+      }
+    } catch (e) {
+      console.warn('Simulation error:', e);
+    } finally {
+      setIsSimulating(false);
+    }
+  };
+
+  const handleCreateNewContainer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await api.createContainer(newContainer);
+      if (res && res.container) {
+        setSelectedId(res.container.container_id);
+      }
+      setShowAddModal(false);
+      await loadAllColdChainData(diversionMode);
+      if (notify) notify(`Successfully onboarded new Reefer Container ${newContainer.container_id}`);
+    } catch (e) {
+      console.warn('Failed to create container:', e);
+    }
+  };
+
+  const handleBulkImport = async () => {
+    setIsBulkImporting(true);
+    try {
+      const res = await api.bulkImportContainers(5);
+      await loadAllColdChainData(diversionMode);
+      if (notify) notify(res?.message || 'Successfully onboarded 5 live test containers to fleet.');
+    } catch (e) {
+      console.warn('Bulk import failed:', e);
+    } finally {
+      setIsBulkImporting(false);
     }
   };
 
@@ -1069,7 +1149,79 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
 
   return (
     <div className="page-stack">
-      {/* 1. TOP COMMAND CENTER KPIS */}
+      {/* 1. TOP TOOLBAR & CONTROLS */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 12,
+        padding: '12px 18px',
+        background: '#111827',
+        border: '1px solid #202c42',
+        borderRadius: 11
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Snowflake size={20} style={{ color: '#08b5e5' }} />
+          <div>
+            <h2 style={{ fontSize: 15, margin: 0, fontWeight: 700, color: '#f1f5f9' }}>
+              LiveCold — Cold Chain Intelligence &amp; Multi-Mode Diversion
+            </h2>
+            <p style={{ fontSize: 11, color: '#7185a3', margin: 0 }}>
+              4-Layer Sensor Anomaly Engine · Sigmoid Spoilage Modeling · Haversine Hub Routing
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {/* Multi-Mode Economic Diversion Switch */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 11, color: '#8fa3c1', fontWeight: 600 }}>Mode:</span>
+            <div className="mode-toggle-group">
+              <button
+                className={`mode-toggle-btn safety ${diversionMode === 'SAFETY' ? 'active' : ''}`}
+                onClick={() => handleModeChange('SAFETY')}
+                title="SAFETY: 0.30 Risk Threshold (Zero Biopharma Spoilage)"
+              >
+                <ShieldAlert size={12} /> SAFETY
+              </button>
+              <button
+                className={`mode-toggle-btn ${diversionMode === 'BALANCED' ? 'active' : ''}`}
+                onClick={() => handleModeChange('BALANCED')}
+                title="BALANCED: 0.50 Risk Threshold + Net Positive Savings"
+              >
+                <Sliders size={12} /> BALANCED
+              </button>
+              <button
+                className={`mode-toggle-btn eco ${diversionMode === 'ECO' ? 'active' : ''}`}
+                onClick={() => handleModeChange('ECO')}
+                title="ECO: 0.65 Risk Threshold + >$2,000 Net Savings"
+              >
+                <Activity size={12} /> ECO
+              </button>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <button
+            className="small-btn"
+            style={{ background: '#102d46', borderColor: '#075879', color: '#08b5e5', fontWeight: 600 }}
+            onClick={() => setShowAddModal(true)}
+          >
+            <Plus size={13} /> Add Container
+          </button>
+          <button
+            className="small-btn"
+            disabled={isBulkImporting}
+            style={{ background: '#172136', borderColor: '#243550', color: '#d9e5f5' }}
+            onClick={handleBulkImport}
+          >
+            <Download size={13} /> {isBulkImporting ? 'Importing...' : 'Bulk Import (5 Reefers)'}
+          </button>
+        </div>
+      </div>
+
+      {/* 2. TOP COMMAND CENTER KPIS */}
       <div className="kpi-grid five">
         <KPI
           icon={Thermometer}
@@ -1108,11 +1260,11 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
         />
       </div>
 
-      {/* 2. MAIN LIVE COLD CHAIN NETWORK MAP */}
+      {/* 3. MAIN LIVE COLD CHAIN NETWORK MAP */}
       <Panel className="map-panel" style={{ padding: 18 }}>
         <PageIntro
           title="Live Cold Chain Network Map &amp; Corridor Tracking"
-          subtitle="Real-time IoT reefer telemetry, cold storage hub availability, and emergency diversion corridors"
+          subtitle={`Real-time IoT reefer telemetry, cold storage hub availability, and emergency diversion corridors (${diversionMode} Mode active)`}
           right={
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span className="live-label"><i className="dot green" /> Live GPS &amp; Sensor Sync</span>
@@ -1125,12 +1277,12 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
           routes={routes}
           selectedContainerId={selectedId}
           onSelectContainer={handleSelectContainer}
-          onRefresh={loadAllColdChainData}
+          onRefresh={() => loadAllColdChainData(diversionMode)}
           loading={loading}
         />
       </Panel>
 
-      {/* 3. SELECTED REEFER DIAGNOSTICS & TELEMETRY */}
+      {/* 4. SELECTED REEFER DIAGNOSTICS & TELEMETRY */}
       <div className="cold-grid">
         {/* Left: Telemetry Chart & Anomaly Layers */}
         <Panel className="chart-panel">
@@ -1235,7 +1387,7 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
             marginTop: 10
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
-              <span style={{ color: '#8fa3c1' }}>Sigmoid Spoilage Risk:</span>
+              <span style={{ color: '#8fa3c1' }}>Sigmoid Spoilage Risk ({diversionMode}):</span>
               <b style={{ color: isCritical ? '#EF4444' : isWarning ? '#F59E0B' : '#10B981' }}>
                 {Math.round(selectedContainer.risk_probability * 100)}% Probability
               </b>
@@ -1254,7 +1406,7 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
           <div className="ai-note" style={{ marginTop: 10 }}>
             <Sparkles size={16} style={{ flexShrink: 0 }} />
             <div>
-              <b>AI Prescriptive Remediation</b>
+              <b>AI Prescriptive Remediation ({diversionMode} Matrix)</b>
               <p>{selectedContainer.action_description || selectedContainer.recommended_action}</p>
             </div>
           </div>
@@ -1308,10 +1460,48 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
           >
             <ShieldCheck size={13} /> Deploy Thermal Blanket Insulation
           </button>
+
+          {/* Quick Interactive Excursion Simulator Controls */}
+          <div style={{
+            marginTop: 14,
+            paddingTop: 12,
+            borderTop: '1px solid #202c42',
+            fontSize: 11
+          }}>
+            <span style={{ color: '#7185a3', fontWeight: 600, display: 'block', marginBottom: 8 }}>
+              🧪 Live Excursion Injection Simulator ({selectedContainer.id}):
+            </span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+              <button
+                className="small-btn"
+                disabled={isSimulating}
+                style={{ padding: '5px 6px', fontSize: 10, justifyContent: 'center', background: '#3b1b2b', color: '#ff414d', borderColor: '#6f293b' }}
+                onClick={() => handleSimulateExcursion(10.3, 45, 'Simulated reefer compressor breakdown')}
+              >
+                🚨 Excursion 10.3°C
+              </button>
+              <button
+                className="small-btn"
+                disabled={isSimulating}
+                style={{ padding: '5px 6px', fontSize: 10, justifyContent: 'center', background: '#382619', color: '#ff8a00', borderColor: '#99530d' }}
+                onClick={() => handleSimulateExcursion(11.8, 60, 'Escalated secondary thermal breach')}
+              >
+                🔥 Escalate 11.8°C
+              </button>
+              <button
+                className="small-btn"
+                disabled={isSimulating}
+                style={{ padding: '5px 6px', fontSize: 10, justifyContent: 'center', background: '#153326', color: '#16c784', borderColor: '#208d62' }}
+                onClick={() => handleSimulateExcursion(4.8, 0, 'Reefer power restored - normal temperature')}
+              >
+                ✅ Restore 4.8°C
+              </button>
+            </div>
+          </div>
         </Panel>
       </div>
 
-      {/* 4. COLD CHAIN ASSET TABLE */}
+      {/* 5. COLD CHAIN ASSET TABLE */}
       <Panel className="table-panel">
         <PageIntro
           title="Monitored Cold-Chain Fleet Telemetry"
@@ -1385,7 +1575,7 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
         </div>
       </Panel>
 
-      {/* 5. CERTIFIED COLD STORAGE HUBS REGISTRY */}
+      {/* 6. CERTIFIED COLD STORAGE HUBS REGISTRY */}
       <Panel className="table-panel">
         <PageIntro
           title="Certified Cold Storage Hubs Registry"
@@ -1433,6 +1623,143 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
           </table>
         </div>
       </Panel>
+
+      {/* 7. ADD CONTAINER MODAL DIALOG */}
+      {showAddModal && (
+        <div className="modal-backdrop" onClick={() => setShowAddModal(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>
+                <Plus size={16} style={{ color: '#08b5e5' }} />
+                Onboard New Cold-Chain Reefer Container
+              </h3>
+              <button
+                onClick={() => setShowAddModal(false)}
+                style={{ background: 'transparent', color: '#7185a3', cursor: 'pointer' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <form onSubmit={handleCreateNewContainer}>
+              <div className="modal-body">
+                <div className="form-row-2">
+                  <div className="input-field">
+                    <label>Container ID *</label>
+                    <input
+                      type="text"
+                      required
+                      value={newContainer.container_id}
+                      onChange={(e) => setNewContainer({ ...newContainer, container_id: e.target.value })}
+                      placeholder="e.g. CTN-8850"
+                    />
+                  </div>
+                  <div className="input-field">
+                    <label>Linked Shipment ID</label>
+                    <input
+                      type="text"
+                      value={newContainer.shipment_id}
+                      onChange={(e) => setNewContainer({ ...newContainer, shipment_id: e.target.value })}
+                      placeholder="e.g. SHP-1049"
+                    />
+                  </div>
+                </div>
+
+                <div className="input-field">
+                  <label>Cargo Type / Product *</label>
+                  <select
+                    value={newContainer.cargo_type}
+                    onChange={(e) => setNewContainer({ ...newContainer, cargo_type: e.target.value })}
+                  >
+                    <option value="Biopharma / Vaccines">Biopharma / Vaccines (2°C - 8°C)</option>
+                    <option value="Specialty Biologics">Specialty Biologics (2°C - 8°C)</option>
+                    <option value="Frozen Plasma">Frozen Plasma (-25°C - -15°C)</option>
+                    <option value="Fresh Produce">Fresh Produce (4°C - 10°C)</option>
+                    <option value="Dairy & Confectionery">Dairy &amp; Confectionery (2°C - 6°C)</option>
+                  </select>
+                </div>
+
+                <div className="form-row-2">
+                  <div className="input-field">
+                    <label>Safe Min Temp (°C)</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={newContainer.safe_min_temp}
+                      onChange={(e) => setNewContainer({ ...newContainer, safe_min_temp: parseFloat(e.target.value) || 2.0 })}
+                    />
+                  </div>
+                  <div className="input-field">
+                    <label>Safe Max Temp (°C)</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={newContainer.safe_max_temp}
+                      onChange={(e) => setNewContainer({ ...newContainer, safe_max_temp: parseFloat(e.target.value) || 8.0 })}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row-2">
+                  <div className="input-field">
+                    <label>Initial Telemetry Temp (°C)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={newContainer.initial_temperature}
+                      onChange={(e) => setNewContainer({ ...newContainer, initial_temperature: parseFloat(e.target.value) || 5.0 })}
+                    />
+                  </div>
+                  <div className="input-field">
+                    <label>Cargo Valuation ($ USD)</label>
+                    <input
+                      type="number"
+                      value={newContainer.cargo_value}
+                      onChange={(e) => setNewContainer({ ...newContainer, cargo_value: parseFloat(e.target.value) || 500000 })}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row-2">
+                  <div className="input-field">
+                    <label>GPS Latitude</label>
+                    <input
+                      type="number"
+                      step="0.0001"
+                      value={newContainer.latitude}
+                      onChange={(e) => setNewContainer({ ...newContainer, latitude: parseFloat(e.target.value) || 19.0 })}
+                    />
+                  </div>
+                  <div className="input-field">
+                    <label>GPS Longitude</label>
+                    <input
+                      type="number"
+                      step="0.0001"
+                      value={newContainer.longitude}
+                      onChange={(e) => setNewContainer({ ...newContainer, longitude: parseFloat(e.target.value) || 72.8 })}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="small-btn"
+                  onClick={() => setShowAddModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="small-btn"
+                  style={{ background: '#08b5e5', color: '#001824', fontWeight: 700 }}
+                >
+                  <Plus size={13} /> Onboard Container
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -47,3 +47,7 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Reference Extracts
+cold-chain-ref/
+supply-chain-control-tower-main/

@@ -67,12 +67,52 @@ export const api = {
     return await fetchJson<any>('/cold-chain/summary');
   },
 
-  async getColdChainMap() {
-    return await fetchJson<any>('/cold-chain/map');
+  async getColdChainMap(mode: string = 'BALANCED') {
+    return await fetchJson<any>(`/cold-chain/map?mode=${mode}`);
   },
 
   async getShipmentColdChain(shipmentId: string) {
     return await fetchJson<any>(`/cold-chain/${shipmentId}`);
+  },
+
+  async getContainerTelemetry(containerId: string) {
+    return await fetchJson<any>(`/cold-chain/telemetry/${containerId}`);
+  },
+
+  async createContainer(data: {
+    container_id: string;
+    shipment_id?: string;
+    cargo_type: string;
+    safe_min_temp?: number;
+    safe_max_temp?: number;
+    latitude?: number;
+    longitude?: number;
+    cargo_value?: number;
+    initial_temperature?: number;
+  }) {
+    return await fetchJson<any>('/cold-chain/containers', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
+  async bulkImportContainers(count: number = 5) {
+    return await fetchJson<any>('/cold-chain/bulk-import', {
+      method: 'POST',
+      body: JSON.stringify({ count })
+    });
+  },
+
+  async simulateExcursion(payload: {
+    container_id: string;
+    target_temp: number;
+    duration_mins: number;
+    description?: string;
+  }) {
+    return await fetchJson<any>('/cold-chain/simulate-excursion', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
   },
 
   async markInvestigating(containerId: string) {
