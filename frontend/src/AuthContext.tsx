@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import {
   supabase,
@@ -28,26 +28,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const isConfigured = Boolean(supabase);
+  const isConfigured = true;
 
   useEffect(() => {
-    if (!supabase) {
-      // Check if there is a local demo session stored
-      const demoUserJson = localStorage.getItem("chainguard_demo_user");
-      if (demoUserJson) {
-        try {
-          const parsed = JSON.parse(demoUserJson);
-          setUser(parsed);
-          setSession({ user: parsed } as any);
-        } catch {
-          // ignore
-        }
-      }
-      setLoading(false);
-      return;
-    }
+    // Clear any obsolete demo user from previous mock sessions
+    localStorage.removeItem("chainguard_demo_user");
 
-    // 1. Initial Session Check
+    // 1. Initial Session Check with Supabase
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -55,7 +42,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         persistProfile(session.user);
       }
       setLoading(false);
-    }).catch(() => {
+    }).catch((err) => {
+      console.warn("Error getting Supabase session:", err);
       setLoading(false);
     });
 
@@ -78,23 +66,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
-    if (!supabase) {
-      // Demo fallback mode when Supabase credentials are pending
-      const mockUser: User = {
-        id: `demo-${Date.now()}`,
-        app_metadata: { provider: "email" },
-        user_metadata: { full_name: email.split("@")[0] || "Operations Lead" },
-        aud: "authenticated",
-        created_at: new Date().toISOString(),
-        email: email
-      } as User;
-      localStorage.setItem("chainguard_demo_user", JSON.stringify(mockUser));
-      setUser(mockUser);
-      setSession({ user: mockUser } as any);
-      setLoading(false);
-      return { data: { user: mockUser, session: { user: mockUser } }, error: null };
-    }
-
     try {
       const result = await supabaseSignIn(email, password);
       if (result.error) {
@@ -116,22 +87,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string, fullName?: string) => {
     setLoading(true);
-    if (!supabase) {
-      const mockUser: User = {
-        id: `demo-${Date.now()}`,
-        app_metadata: { provider: "email" },
-        user_metadata: { full_name: fullName || email.split("@")[0] || "Operations Lead" },
-        aud: "authenticated",
-        created_at: new Date().toISOString(),
-        email: email
-      } as User;
-      localStorage.setItem("chainguard_demo_user", JSON.stringify(mockUser));
-      setUser(mockUser);
-      setSession({ user: mockUser } as any);
-      setLoading(false);
-      return { data: { user: mockUser, session: { user: mockUser } }, error: null };
-    }
-
     try {
       const result = await supabaseSignUp(email, password, fullName);
       if (result.error) {
@@ -150,21 +105,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
-    if (!supabase) {
-      const mockUser: User = {
-        id: `google-${Date.now()}`,
-        app_metadata: { provider: "google" },
-        user_metadata: { full_name: "Google Operations Lead", avatar_url: "" },
-        aud: "authenticated",
-        created_at: new Date().toISOString(),
-        email: "lead@chainguard.ai"
-      } as User;
-      localStorage.setItem("chainguard_demo_user", JSON.stringify(mockUser));
-      setUser(mockUser);
-      setSession({ user: mockUser } as any);
-      return { data: { user: mockUser }, error: null };
-    }
-
     return await supabaseSignInWithGoogle();
   };
 
@@ -173,19 +113,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("chainguard_demo_user");
     setUser(null);
     setSession(null);
-
-    let res = { error: null };
-    if (supabase) {
-      res = await supabaseSignOut();
-    }
+    const res = await supabaseSignOut();
     setLoading(false);
     return res;
   };
 
   const resetPassword = async (email: string) => {
-    if (!supabase) {
-      return { data: { message: "Password reset link simulated in Demo mode." }, error: null };
-    }
     return await supabaseResetPassword(email);
   };
 

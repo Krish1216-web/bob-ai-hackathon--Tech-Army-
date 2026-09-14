@@ -1,32 +1,24 @@
 import { createClient, type User } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+const DEFAULT_SUPABASE_URL = "https://ginxkxhzrxwjgcfksklf.supabase.co";
+const DEFAULT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpbnhreGh6cnh3amdjZmtza2xmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk0MDc0MDksImV4cCI6MjEwNDk4MzQwOX0.Lhf6VBtXzUy4PR86fsp_UewSBiNiMvc-zcV-OQf3TKM";
 
-export const supabase =
-  supabaseUrl && supabaseAnonKey
-    ? createClient(supabaseUrl, supabaseAnonKey, {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: true
-        }
-      })
-    : null;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
 
 export async function signInWithPassword(email: string, password: string) {
-  if (!supabase) {
-    return { data: null, error: new Error("Supabase environment variables are not configured.") };
-  }
-
   return await supabase.auth.signInWithPassword({ email, password });
 }
 
 export async function signUpWithPassword(email: string, password: string, fullName?: string) {
-  if (!supabase) {
-    return { data: null, error: new Error("Supabase environment variables are not configured.") };
-  }
-
   return await supabase.auth.signUp({
     email,
     password,
@@ -40,39 +32,31 @@ export async function signUpWithPassword(email: string, password: string, fullNa
 }
 
 export async function signInWithGoogle() {
-  if (!supabase) {
-    return { data: null, error: new Error("Supabase environment variables are not configured.") };
-  }
-
-  const redirectTo = import.meta.env.VITE_SUPABASE_REDIRECT_URL || `${window.location.origin}/`;
+  const redirectTo = `${window.location.origin}/`;
 
   return await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo
+      redirectTo,
+      queryParams: {
+        access_type: "offline",
+        prompt: "select_account"
+      }
     }
   });
 }
 
 export async function resetPasswordForEmail(email: string) {
-  if (!supabase) {
-    return { data: null, error: new Error("Supabase environment variables are not configured.") };
-  }
-
   const redirectTo = `${window.location.origin}/#login`;
   return await supabase.auth.resetPasswordForEmail(email, { redirectTo });
 }
 
 export async function signOut() {
-  if (!supabase) {
-    return { error: null };
-  }
-
   return await supabase.auth.signOut();
 }
 
 export async function persistProfile(user: User | null, provider: string = "email") {
-  if (!supabase || !user) {
+  if (!user) {
     return { data: null, error: null };
   }
 
@@ -95,5 +79,3 @@ export async function persistProfile(user: User | null, provider: string = "emai
     return { data: null, error: null };
   }
 }
-
-
