@@ -44,10 +44,12 @@ export async function signInWithGoogle() {
     return { data: null, error: new Error("Supabase environment variables are not configured.") };
   }
 
+  const redirectTo = import.meta.env.VITE_SUPABASE_REDIRECT_URL || `${window.location.origin}/`;
+
   return await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${window.location.origin}/`
+      redirectTo
     }
   });
 }
