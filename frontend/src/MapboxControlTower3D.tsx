@@ -263,18 +263,11 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
     document.head.appendChild(script);
   }, []);
 
-  // Initialize Mapbox GL JS 3D Globe with robust tile fallback
+  // Initialize Mapbox GL JS 3D Globe ONCE when container mounts
   useEffect(() => {
     if (!scriptLoaded || !mapContainerRef.current) return;
     if (!window.mapboxgl) return;
-
-    // Remove existing instance if changing style
-    if (mapRef.current) {
-      try {
-        mapRef.current.remove();
-      } catch (e) {}
-      mapRef.current = null;
-    }
+    if (mapRef.current) return; // Prevent double creation
 
     try {
       const customToken = (import.meta.env.VITE_MAPBOX_TOKEN as string) || '';
@@ -284,14 +277,13 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
         window.mapboxgl.accessToken = customToken;
       }
 
-      // Choose official style if custom token present, otherwise choose robust self-hosted tiles
-      const chosenStyle = hasCustomToken
+      const initialStyle = hasCustomToken
         ? (mapStyle === 'satellite' ? 'mapbox://styles/mapbox/satellite-v9' : 'mapbox://styles/mapbox/dark-v11')
         : (mapStyle === 'satellite' ? satelliteGlobeStyle : darkGlobeStyle);
 
       const map = new window.mapboxgl.Map({
         container: mapContainerRef.current,
-        style: chosenStyle,
+        style: initialStyle,
         center: [78.9629, 20.5937],
         zoom: 2.85,
         pitch: 50,
@@ -302,7 +294,7 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
 
       mapRef.current = map;
 
-      map.on('load', () => {
+      const onStyleLoad = () => {
         // Space Fog & Atmosphere Styling
         try {
           map.setFog({
@@ -333,15 +325,17 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
 
         renderDisruptionZonesAndRoutes(map);
         renderMarkers(map);
-      });
+      };
 
-      map.on('error', (e: any) => {
-        // If official Mapbox style throws 401, fallback to robust CARTO/Esri tiles
-        if (hasCustomToken && e && e.error && (e.error.status === 401 || e.error.status === 403)) {
-          console.warn('Mapbox token error, applying open tiles fallback...');
-          map.setStyle(mapStyle === 'satellite' ? satelliteGlobeStyle : darkGlobeStyle);
-        }
-      });
+      map.on('load', onStyleLoad);
+      map.on('style.load', onStyleLoad);
+
+      // Force canvas resize to ensure map fills container completely
+      setTimeout(() => {
+        try {
+          map.resize();
+        } catch (e) {}
+      }, 200);
 
     } catch (err) {
       console.warn('Mapbox init error:', err);
@@ -356,9 +350,28 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
         mapRef.current = null;
       }
     };
-  }, [scriptLoaded, mapStyle]);
+  }, [scriptLoaded]);
 
-  // Update Markers & Layers
+  // Handle Dynamic Basemap Style Toggle (Dark 3D vs Satellite) WITHOUT destroying map instance
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    try {
+      const customToken = (import.meta.env.VITE_MAPBOX_TOKEN as string) || '';
+      const hasCustomToken = customToken && !customToken.includes('mock');
+
+      const nextStyle = hasCustomToken
+        ? (mapStyle === 'satellite' ? 'mapbox://styles/mapbox/satellite-v9' : 'mapbox://styles/mapbox/dark-v11')
+        : (mapStyle === 'satellite' ? satelliteGlobeStyle : darkGlobeStyle);
+
+      map.setStyle(nextStyle);
+    } catch (e) {
+      console.warn('Style toggle error:', e);
+    }
+  }, [mapStyle]);
+
+  // Update Markers & Disruption Layers when props or layer toggles change
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -367,11 +380,6 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
       if (map.isStyleLoaded()) {
         renderMarkers(map);
         toggleDisruptionsLayer(map, disruptionsEnabled);
-      } else {
-        map.once('load', () => {
-          renderMarkers(map);
-          toggleDisruptionsLayer(map, disruptionsEnabled);
-        });
       }
     } catch (e) {}
   }, [containers, selectedContainerId, idleAssetsEnabled, disruptionsEnabled]);
