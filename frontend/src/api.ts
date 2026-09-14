@@ -158,11 +158,16 @@ export const api = {
     });
   },
 
-  // Copilot Query
-  async queryCopilot(query: string) {
+  // Copilot Query (Multi-LLM / RAG)
+  async queryCopilot(query: string, options?: { api_key?: string; provider?: string; conversation_history?: any[] }) {
     return await fetchJson<any>('/copilot/query', {
       method: 'POST',
-      body: JSON.stringify({ query })
+      body: JSON.stringify({
+        query,
+        api_key: options?.api_key || undefined,
+        provider: options?.provider || 'auto',
+        conversation_history: options?.conversation_history || []
+      })
     });
   }
 };

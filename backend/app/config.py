@@ -15,9 +15,14 @@ class Settings(BaseSettings):
     SUPABASE_SERVICE_ROLE_KEY: Optional[str] = ""
 
     # IBM watsonx.ai Foundation Models
-    WATSONX_API_KEY: str = ""
-    WATSONX_PROJECT_ID: str = ""
+    WATSONX_API_KEY: Optional[str] = ""
+    WATSONX_PROJECT_ID: Optional[str] = ""
     WATSONX_URL: str = "https://us-south.ml.cloud.ibm.com"
+
+    # Multi-LLM Providers (Google Gemini, Groq, OpenAI)
+    GEMINI_API_KEY: Optional[str] = ""
+    GROQ_API_KEY: Optional[str] = ""
+    OPENAI_API_KEY: Optional[str] = ""
     
     # CORS
     CORS_ORIGINS: List[str] = ["*"]

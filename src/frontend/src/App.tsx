@@ -3028,21 +3028,32 @@ interface ChatMessage {
   confidence?: number;
   sources?: string[];
   suggested_actions?: string[];
+  provider_used?: string;
   time: string;
 }
 
 function Copilot({ onClose, navigate }: { onClose: () => void; navigate?: (to: string) => void }) {
   const [inputVal, setInputVal] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
+
+  // Persistent Model & API Key Settings
+  const [provider, setProvider] = useState<string>(() => {
+    return localStorage.getItem('chainguard_llm_provider') || 'auto';
+  });
+  const [apiKey, setApiKey] = useState<string>(() => {
+    return localStorage.getItem('chainguard_llm_key') || '';
+  });
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'msg-welcome',
       role: 'assistant',
-      text: 'Hello Operations Lead! I am **ChainGuard AI Copilot** powered by **IBM watsonx.ai**.\n\nI have real-time visibility into your 23 active shipments, fleet telematics, port disruptions, and IoT cold chain reefers. How can I assist you with network optimization today?',
+      text: 'Hello Operations Lead! I am **ChainGuard AI Copilot** powered by **Multi-LLM Live RAG**.\n\nI have real-time visibility into your 23 active shipments, fleet telematics, port disruptions, and IoT cold chain reefers. Ask me any question or configure your own Google Gemini / Groq / watsonx model in Settings ⚙️ above.',
       confidence: 99,
-      sources: ['Control Tower Aggregator', 'watsonx.ai Engine'],
+      sources: ['Control Tower Aggregator', 'Live RAG Engine'],
+      provider_used: 'ChainGuard Multi-LLM RAG',
       suggested_actions: [
         'Which shipments are at highest risk?',
         'What is the impact of Mumbai Port Strike?',
@@ -3056,6 +3067,13 @@ function Copilot({ onClose, navigate }: { onClose: () => void; navigate?: (to: s
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
+  const handleSaveSettings = (newProvider: string, newKey: string) => {
+    setProvider(newProvider);
+    setApiKey(newKey);
+    localStorage.setItem('chainguard_llm_provider', newProvider);
+    localStorage.setItem('chainguard_llm_key', newKey);
+  };
 
   const handleAsk = async (queryText: string) => {
     const trimmed = queryText.trim();
@@ -3078,7 +3096,12 @@ function Copilot({ onClose, navigate }: { onClose: () => void; navigate?: (to: s
     setLoading(true);
 
     try {
-      const res = await api.queryCopilot(trimmed);
+      const historyPayload = messages.slice(-4).map(m => ({ role: m.role, content: m.text }));
+      const res = await api.queryCopilot(trimmed, {
+        provider: provider,
+        api_key: apiKey || undefined,
+        conversation_history: historyPayload
+      });
       setLoading(false);
 
       if (res && res.answer) {
@@ -3088,9 +3111,10 @@ function Copilot({ onClose, navigate }: { onClose: () => void; navigate?: (to: s
             id: `ai-${Date.now()}`,
             role: 'assistant',
             text: res.answer,
-            confidence: res.confidence ? Math.round(res.confidence * 100) : 95,
+            confidence: res.confidence ? Math.round(res.confidence * 100) : 96,
             sources: res.sources || ['PostgreSQL/SQLite Live DB', 'watsonx.ai'],
             suggested_actions: res.suggested_actions || [],
+            provider_used: res.provider_used || (provider === 'gemini' ? 'Google Gemini 1.5' : provider === 'groq' ? 'Groq Llama 3.3 70B' : 'IBM watsonx.ai'),
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }
         ]);
@@ -3104,6 +3128,7 @@ function Copilot({ onClose, navigate }: { onClose: () => void; navigate?: (to: s
             confidence: 94,
             sources: ['Shipment Risk Engine', 'Disruption Matrix'],
             suggested_actions: ['Reroute SHP-1042 via Mundra', 'Redeploy TRK-204', 'View Cold Chain Map'],
+            provider_used: 'ChainGuard Local Reasoning Engine',
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }
         ]);
@@ -3119,6 +3144,7 @@ function Copilot({ onClose, navigate }: { onClose: () => void; navigate?: (to: s
           confidence: 90,
           sources: ['Local Telemetry Engine'],
           suggested_actions: ['Open AI Command Center', 'Run What-If Simulation'],
+          provider_used: 'ChainGuard Local Engine',
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
@@ -3162,9 +3188,10 @@ function Copilot({ onClose, navigate }: { onClose: () => void; navigate?: (to: s
       {
         id: `msg-reset-${Date.now()}`,
         role: 'assistant',
-        text: 'Chat history cleared. Live connection to **IBM watsonx.ai** and database active. What would you like to investigate?',
+        text: 'Chat history cleared. Live connection to **ChainGuard AI RAG Engine** active. What would you like to investigate?',
         confidence: 99,
         sources: ['watsonx.ai Engine'],
+        provider_used: 'ChainGuard Multi-LLM RAG',
         suggested_actions: [
           'Which shipments are at highest risk?',
           'What is the impact of Mumbai Port Strike?',
@@ -3177,19 +3204,34 @@ function Copilot({ onClose, navigate }: { onClose: () => void; navigate?: (to: s
 
   return (
     <div className="drawer-backdrop" onClick={onClose}>
-      <aside className="copilot-drawer" style={{ width: 440 }} onClick={(event) => event.stopPropagation()}>
+      <aside className="copilot-drawer" style={{ width: 450 }} onClick={(event) => event.stopPropagation()}>
         {/* Drawer Header */}
         <div className="drawer-head" style={{ background: '#0d1424', padding: '16px 20px' }}>
           <div>
             <h2 style={{ fontSize: 15, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
               <Sparkles size={17} style={{ color: '#08B5E5' }} />
-              IBM watsonx.ai Copilot
+              ChainGuard AI Copilot (Live LLM)
             </h2>
             <span style={{ fontSize: 10, color: '#16C784', display: 'flex', alignItems: 'center', gap: 5, marginTop: 4 }}>
               <i className="dot green" /> RAG Connected · Real-time DB Synced
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className="small-btn"
+              style={{
+                padding: '4px 8px',
+                fontSize: 10,
+                background: showSettings ? '#102d46' : 'transparent',
+                color: showSettings ? '#08b5e5' : '#7185a3',
+                borderColor: showSettings ? '#075879' : '#202c42'
+              }}
+              title="Configure LLM Model & API Keys"
+            >
+              <Settings2 size={12} />
+              <span>Model</span>
+            </button>
             <button
               onClick={handleClearChat}
               className="small-btn"
@@ -3203,6 +3245,73 @@ function Copilot({ onClose, navigate }: { onClose: () => void; navigate?: (to: s
             </button>
           </div>
         </div>
+
+        {/* Model & API Key Settings Drawer Overlay */}
+        {showSettings && (
+          <div style={{
+            background: '#101a2e',
+            borderBottom: '1px solid #202c42',
+            padding: '12px 18px',
+            fontSize: 11
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <strong style={{ color: '#08b5e5' }}>⚙️ LLM Model Provider Configuration</strong>
+              <button
+                onClick={() => setShowSettings(false)}
+                style={{ background: 'transparent', color: '#7185a3', fontSize: 10, cursor: 'pointer' }}
+              >
+                Done
+              </button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+              <div>
+                <label style={{ display: 'block', color: '#8fa3c1', fontSize: 10, marginBottom: 4 }}>LLM Provider:</label>
+                <select
+                  value={provider}
+                  onChange={(e) => handleSaveSettings(e.target.value, apiKey)}
+                  style={{
+                    width: '100%',
+                    background: '#172136',
+                    border: '1px solid #243550',
+                    color: '#f1f5f9',
+                    borderRadius: 6,
+                    padding: '6px 8px',
+                    fontSize: 11
+                  }}
+                >
+                  <option value="auto">Auto Intelligent Routing</option>
+                  <option value="gemini">Google Gemini 1.5 Flash</option>
+                  <option value="groq">Groq (Llama 3.3 70B Free)</option>
+                  <option value="watsonx">IBM watsonx.ai (Granite)</option>
+                  <option value="openai">OpenAI (GPT-4o mini)</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', color: '#8fa3c1', fontSize: 10, marginBottom: 4 }}>
+                  API Key (Optional):
+                </label>
+                <input
+                  type="password"
+                  placeholder="Paste Key (Gemini/Groq/OpenAI)"
+                  value={apiKey}
+                  onChange={(e) => handleSaveSettings(provider, e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: '#172136',
+                    border: '1px solid #243550',
+                    color: '#f1f5f9',
+                    borderRadius: 6,
+                    padding: '6px 8px',
+                    fontSize: 11
+                  }}
+                />
+              </div>
+            </div>
+            <small style={{ color: '#7185a3', fontSize: 10, display: 'block' }}>
+              💡 When no external key is provided, ChainGuard automatically executes its built-in real-time RAG engine with zero latency.
+            </small>
+          </div>
+        )}
 
         {/* Chat Body */}
         <div className="copilot-body" style={{ flex: 1, padding: 16, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -3220,7 +3329,9 @@ function Copilot({ onClose, navigate }: { onClose: () => void; navigate?: (to: s
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, fontSize: 10, color: '#7185a3' }}>
                 {msg.role === 'assistant' ? (
                   <>
-                    <span style={{ color: '#08B5E5', fontWeight: 700 }}>watsonx AI</span>
+                    <span style={{ color: '#08B5E5', fontWeight: 700 }}>
+                      {msg.provider_used || 'watsonx AI'}
+                    </span>
                     {msg.confidence && (
                       <span style={{ background: '#0c3047', color: '#38bdf8', padding: '1px 6px', borderRadius: 6, fontSize: 9 }}>
                         {msg.confidence}% confidence
@@ -3300,7 +3411,7 @@ function Copilot({ onClose, navigate }: { onClose: () => void; navigate?: (to: s
           {loading && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#141d2e', borderRadius: 8, border: '1px solid #233451', width: 'fit-content' }}>
               <RefreshCw size={13} className="animate-spin" style={{ color: '#08B5E5' }} />
-              <span style={{ fontSize: 11, color: '#8fa3c1' }}>watsonx.ai reasoning across live network DB...</span>
+              <span style={{ fontSize: 11, color: '#8fa3c1' }}>Generating live AI reasoning across network RAG...</span>
             </div>
           )}
 
@@ -3309,7 +3420,7 @@ function Copilot({ onClose, navigate }: { onClose: () => void; navigate?: (to: s
 
         {/* Quick Suggestion Pills */}
         <div style={{ padding: '6px 14px 0', display: 'flex', gap: 6, overflowX: 'auto', background: '#0d1424', borderTop: '1px solid #1a253c' }}>
-          {['High Risk Shipments', 'Mumbai Strike Delay', 'Idle Asset TRK-204', 'CTN-8801 Excursion'].map((chip, cIdx) => (
+          {['High Risk Shipments', 'Mumbai Strike Delay', 'Idle Asset TRK-204', 'CTN-8801 Excursion', 'Simulate Alternative Route'].map((chip, cIdx) => (
             <button
               key={cIdx}
               onClick={() => handleAsk(chip)}
@@ -3335,7 +3446,7 @@ function Copilot({ onClose, navigate }: { onClose: () => void; navigate?: (to: s
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAsk(inputVal)}
-            placeholder="Ask AI Copilot about shipments, fleet, disruptions..."
+            placeholder="Ask AI Copilot anything about shipments, fleet, disruptions..."
             disabled={loading}
             style={{ fontSize: 12 }}
           />
