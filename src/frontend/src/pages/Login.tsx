@@ -1,6 +1,6 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { useAuth } from "../AuthContext";
-import { ShieldCheck, Eye, EyeOff, Lock, Mail, ArrowRight, Sparkles, AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
+import { ShieldCheck, Eye, EyeOff, Lock, Mail, ArrowRight, Sparkles, AlertTriangle, CheckCircle2, RefreshCw, Zap, KeyRound } from "lucide-react";
 
 export default function Login({ navigate }: { navigate: (to: string) => void }) {
   const { signIn, signInWithGoogle, resetPassword } = useAuth();
@@ -11,33 +11,31 @@ export default function Login({ navigate }: { navigate: (to: string) => void }) 
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [resetSent, setResetSent] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const doSignIn = async (targetEmail: string, targetPass: string) => {
     setErrorMsg(null);
-
-    if (!email.trim() || !password.trim()) {
+    if (!targetEmail.trim() || !targetPass.trim()) {
       setErrorMsg("Please enter both email and password.");
       return;
     }
 
     setLoading(true);
     try {
-      const { data, error } = await signIn(email.trim(), password);
+      const { data, error } = await signIn(targetEmail.trim(), targetPass);
       setLoading(false);
 
       if (error) {
         const msg = error.message?.toLowerCase() || "";
         if (msg.includes("invalid login credentials") || msg.includes("invalid_credentials") || msg.includes("wrong password")) {
-          setErrorMsg("Email or password is incorrect.");
+          setErrorMsg("Email or password is incorrect. You can click '1-Click Demo' below or create a new account.");
         } else if (msg.includes("email not confirmed") || msg.includes("unconfirmed")) {
           setErrorMsg("Please verify your email before signing in.");
         } else if (msg.includes("fetch") || msg.includes("network")) {
-          setErrorMsg("Unable to reach the authentication service. Please try again.");
+          setErrorMsg("Unable to reach the authentication service. Please check your network and try again.");
         } else {
           setErrorMsg(error.message || "Failed to sign in. Please check your credentials.");
         }
@@ -45,12 +43,24 @@ export default function Login({ navigate }: { navigate: (to: string) => void }) 
       }
 
       if (data?.session || data?.user) {
+        window.location.hash = "/app";
         navigate("/app");
       }
     } catch (err: any) {
       setLoading(false);
       setErrorMsg("Unable to reach the authentication service. Please try again.");
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    doSignIn(email, password);
+  };
+
+  const handleQuickDemo = (demoEmail: string) => {
+    setEmail(demoEmail);
+    setPassword("Password123!");
+    doSignIn(demoEmail, "Password123!");
   };
 
   const handleGoogleSignIn = async () => {
@@ -186,38 +196,96 @@ export default function Login({ navigate }: { navigate: (to: string) => void }) 
           className="auth-card"
           style={{
             width: "100%",
-            maxWidth: "420px",
+            maxWidth: "430px",
             background: "#0e172a",
             border: "1px solid #20314f",
             borderRadius: "16px",
-            padding: "36px 32px",
+            padding: "32px 28px",
             boxShadow: "0 20px 50px rgba(0,0,0,0.5)"
           }}
         >
-          <div style={{ marginBottom: "28px" }}>
+          <div style={{ marginBottom: "20px" }}>
             <h2 style={{ fontSize: "24px", fontWeight: "700", margin: "0 0 6px", color: "#f8fafc" }}>Sign in</h2>
             <p style={{ fontSize: "13px", color: "#8fa3c1", margin: 0 }}>Access your ChainGuard control tower.</p>
           </div>
 
+          {/* Quick 1-Click Demo Login Bar */}
+          <div style={{ background: "rgba(8,181,229,0.06)", border: "1px solid rgba(8,181,229,0.22)", borderRadius: "10px", padding: "12px 14px", marginBottom: "20px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+              <span style={{ fontSize: "11px", fontWeight: "700", color: "#08b5e5", display: "flex", alignItems: "center", gap: "5px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                <Zap size={13} fill="#08b5e5" /> 1-Click Demo Login
+              </span>
+              <span style={{ fontSize: "10px", color: "#627795" }}>Supabase Live Auth</span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+              <button
+                type="button"
+                onClick={() => handleQuickDemo("admin@chainguard.ai")}
+                disabled={loading || googleLoading}
+                style={{
+                  background: "#131f36",
+                  border: "1px solid #283e5f",
+                  borderRadius: "6px",
+                  padding: "7px 10px",
+                  color: "#f8fafc",
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "5px"
+                }}
+                title="admin@chainguard.ai / Password123!"
+              >
+                <KeyRound size={12} style={{ color: "#08b5e5" }} />
+                <span>Admin (Full Access)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemo("user@chainguard.ai")}
+                disabled={loading || googleLoading}
+                style={{
+                  background: "#131f36",
+                  border: "1px solid #283e5f",
+                  borderRadius: "6px",
+                  padding: "7px 10px",
+                  color: "#f8fafc",
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "5px"
+                }}
+                title="user@chainguard.ai / Password123!"
+              >
+                <KeyRound size={12} style={{ color: "#16c784" }} />
+                <span>Operations Lead</span>
+              </button>
+            </div>
+          </div>
+
           {/* Error Alert Box */}
           {errorMsg && (
-            <div style={{ background: "rgba(255,65,77,0.1)", border: "1px solid rgba(255,65,77,0.3)", borderRadius: "8px", padding: "10px 14px", marginBottom: "20px", fontSize: "12px", color: "#ff6570", display: "flex", alignItems: "center", gap: "8px" }}>
+            <div style={{ background: "rgba(255,65,77,0.1)", border: "1px solid rgba(255,65,77,0.3)", borderRadius: "8px", padding: "10px 14px", marginBottom: "18px", fontSize: "12px", color: "#ff6570", display: "flex", alignItems: "center", gap: "8px" }}>
               <AlertTriangle size={15} style={{ flexShrink: 0 }} />
               <span>{errorMsg}</span>
             </div>
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
             <div>
-              <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#94a3b8", marginBottom: "6px" }}>Email address</label>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#94a3b8", marginBottom: "5px" }}>Email address</label>
               <div style={{ position: "relative" }}>
                 <Mail size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#627795" }} />
                 <input
                   type="email"
                   required
                   autoComplete="email"
-                  placeholder="name@company.com"
+                  placeholder="admin@chainguard.ai"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   style={{
@@ -225,7 +293,7 @@ export default function Login({ navigate }: { navigate: (to: string) => void }) 
                     background: "#131f36",
                     border: "1px solid #243550",
                     borderRadius: "8px",
-                    padding: "10px 12px 10px 38px",
+                    padding: "9px 12px 9px 38px",
                     color: "#f8fafc",
                     fontSize: "13px",
                     outline: "none"
@@ -235,7 +303,7 @@ export default function Login({ navigate }: { navigate: (to: string) => void }) 
             </div>
 
             <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
                 <label style={{ fontSize: "12px", fontWeight: "600", color: "#94a3b8" }}>Password</label>
                 <button
                   type="button"
@@ -259,7 +327,7 @@ export default function Login({ navigate }: { navigate: (to: string) => void }) 
                     background: "#131f36",
                     border: "1px solid #243550",
                     borderRadius: "8px",
-                    padding: "10px 38px 10px 38px",
+                    padding: "9px 38px 9px 38px",
                     color: "#f8fafc",
                     fontSize: "13px",
                     outline: "none"
@@ -284,9 +352,9 @@ export default function Login({ navigate }: { navigate: (to: string) => void }) 
                 color: "#001824",
                 fontWeight: "700",
                 fontSize: "13px",
-                padding: "12px",
+                padding: "11px",
                 borderRadius: "8px",
-                marginTop: "6px",
+                marginTop: "4px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -311,7 +379,7 @@ export default function Login({ navigate }: { navigate: (to: string) => void }) 
           </form>
 
           {/* Divider */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "22px 0", color: "#627795", fontSize: "11px", fontWeight: "600" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "18px 0", color: "#627795", fontSize: "11px", fontWeight: "600" }}>
             <div style={{ flex: 1, height: "1px", background: "#202e48" }} />
             <span>OR</span>
             <div style={{ flex: 1, height: "1px", background: "#202e48" }} />
@@ -357,7 +425,7 @@ export default function Login({ navigate }: { navigate: (to: string) => void }) 
           </button>
 
           {/* Switch to Sign Up */}
-          <div style={{ marginTop: "24px", textAlign: "center", fontSize: "12px", color: "#8fa3c1" }}>
+          <div style={{ marginTop: "20px", textAlign: "center", fontSize: "12px", color: "#8fa3c1" }}>
             Don't have an account?{" "}
             <button
               type="button"

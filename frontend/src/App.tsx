@@ -38,8 +38,15 @@ const routePages: Record<string, { title: string; subtitle: string }> = {
 type Toast = { message: string; tone: 'success' | 'danger' };
 
 function getInitialRoute(): string {
+  const href = window.location.href;
+  if (href.includes('access_token=') || href.includes('error=') || href.includes('code=')) {
+    return '/auth/callback';
+  }
   const hash = window.location.hash.slice(1);
-  if (hash) return hash.startsWith('/') ? hash : `/${hash}`;
+  if (hash) {
+    const clean = hash.startsWith('/') ? hash : `/${hash}`;
+    return clean.split('?')[0];
+  }
   const pathname = window.location.pathname;
   if (pathname && pathname !== '/') return pathname;
   return '/';
@@ -80,6 +87,13 @@ function AppShell() {
     setPath(cleanTo);
     setSearch('');
   };
+
+  // Automatically navigate to /app when user logs in from an auth/landing page
+  useEffect(() => {
+    if (user && (path === '/' || path === '/login' || path === '/signup' || path === '/auth/callback' || path.includes('access_token'))) {
+      navigate('/app');
+    }
+  }, [user, path]);
 
   // Sync state from live backend API on mount & path changes
   useEffect(() => {
@@ -197,6 +211,10 @@ function AppShell() {
 
   // Public Landing route
   if (path === '/' || path === '/landing') {
+    if (user && path === '/') {
+      setTimeout(() => navigate('/app'), 0);
+      return null;
+    }
     return <Landing onLaunch={() => navigate(user ? '/app' : '/login')} onSignIn={() => navigate('/login')} />;
   }
 

@@ -32,14 +32,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Clear any obsolete demo user from previous mock sessions
-    localStorage.removeItem("chainguard_demo_user");
+    try {
+      localStorage.removeItem("chainguard_demo_user");
+    } catch {
+      // ignore
+    }
 
     // 1. Initial Session Check with Supabase
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        persistProfile(session.user);
+        persistProfile(session.user).catch((e) => console.warn("Profile persist err", e));
       }
       setLoading(false);
     }).catch((err) => {
@@ -54,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        persistProfile(session.user);
+        persistProfile(session.user).catch((e) => console.warn("Profile persist err", e));
       }
       setLoading(false);
     });
@@ -65,41 +69,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    setLoading(true);
     try {
       const result = await supabaseSignIn(email, password);
       if (result.error) {
-        setLoading(false);
         return result;
       }
-      setUser(result.data?.user ?? null);
-      setSession(result.data?.session ?? null);
       if (result.data?.user) {
-        await persistProfile(result.data.user);
+        setUser(result.data.user);
+        setSession(result.data.session ?? null);
+        persistProfile(result.data.user).catch((e) => console.warn("Profile persist err", e));
       }
-      setLoading(false);
       return result;
     } catch (err: any) {
-      setLoading(false);
       return { data: null, error: err };
     }
   };
 
   const signUp = async (email: string, password: string, fullName?: string) => {
-    setLoading(true);
     try {
       const result = await supabaseSignUp(email, password, fullName);
       if (result.error) {
-        setLoading(false);
         return result;
       }
       if (result.data?.user) {
-        await persistProfile(result.data.user);
+        setUser(result.data.user);
+        setSession(result.data.session ?? null);
+        persistProfile(result.data.user).catch((e) => console.warn("Profile persist err", e));
       }
-      setLoading(false);
       return result;
     } catch (err: any) {
-      setLoading(false);
       return { data: null, error: err };
     }
   };
@@ -109,13 +107,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    setLoading(true);
-    localStorage.removeItem("chainguard_demo_user");
+    try {
+      localStorage.removeItem("chainguard_demo_user");
+    } catch {
+      // ignore
+    }
     setUser(null);
     setSession(null);
-    const res = await supabaseSignOut();
-    setLoading(false);
-    return res;
+    return await supabaseSignOut();
   };
 
   const resetPassword = async (email: string) => {

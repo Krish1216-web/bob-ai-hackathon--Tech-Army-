@@ -1,25 +1,18 @@
-﻿import React, { useEffect } from "react";
-import { supabase } from "../supabase";
+import React, { useEffect } from "react";
+import { useAuth } from "../AuthContext";
 import { RefreshCw, ShieldCheck } from "lucide-react";
 
 export default function AuthCallback({ navigate }: { navigate: (to: string) => void }) {
+  const { user, loading } = useAuth();
+
   useEffect(() => {
-    async function handleAuth() {
-      if (supabase) {
-        try {
-          const { data } = await supabase.auth.getSession();
-          if (data.session) {
-            navigate("/app");
-            return;
-          }
-        } catch (e) {
-          console.error("Auth callback error:", e);
-        }
+    if (!loading) {
+      if (window.history.replaceState) {
+        window.history.replaceState(null, "", window.location.pathname + "#/app");
       }
-      navigate("/app");
+      navigate(user ? "/app" : "/login");
     }
-    handleAuth();
-  }, [navigate]);
+  }, [user, loading, navigate]);
 
   return (
     <div style={{ minHeight: "100vh", background: "#080d1c", display: "grid", placeItems: "center", color: "#f8fafc" }}>

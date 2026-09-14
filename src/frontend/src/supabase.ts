@@ -32,7 +32,7 @@ export async function signUpWithPassword(email: string, password: string, fullNa
 }
 
 export async function signInWithGoogle() {
-  const redirectTo = `${window.location.origin}/`;
+  const redirectTo = window.location.origin;
 
   return await supabase.auth.signInWithOAuth({
     provider: "google",
