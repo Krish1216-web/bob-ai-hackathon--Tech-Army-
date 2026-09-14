@@ -4,9 +4,14 @@ import {
   ChevronRight, CircleDollarSign, Clock3, Container, Download, ExternalLink, Filter,
   FlaskConical, Gauge, LayoutDashboard, MapPin, Package, Search, Send, Settings2, ShieldCheck,
   Ship, Sparkles, Thermometer, Truck, X, XCircle, Zap, Warehouse, ShieldAlert, Snowflake, Activity,
-  Plus, RefreshCw, Sliders, FileText, Printer, CheckCheck, Award,
+  Plus, RefreshCw, Sliders, FileText, Printer, CheckCheck, Award, LogOut,
   type LucideIcon,
 } from 'lucide-react';
+import { AuthProvider, useAuth } from './AuthContext';
+import Landing from './Landing';
+import Login from './pages/Login';
+import SignUp from './pages/SignUp';
+import AuthCallback from './pages/AuthCallback';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { actions as defaultActions, disruptions as defaultDisruptions, opportunities as defaultOpportunities, shipments as defaultShipments, type AIAction, type Severity, type Shipment } from './data';
 import { api } from './api';
@@ -19,6 +24,8 @@ const defaultAssetData = [{ name: 'Trucks', value: 76 }, { name: 'Containers', v
 
 const routePages: Record<string, { title: string; subtitle: string }> = {
   '/': { title: 'Supply Chain Control Tower', subtitle: 'Real-time visibility, disruption intelligence and AI-powered response.' },
+  '/app': { title: 'Supply Chain Control Tower', subtitle: 'Real-time visibility, disruption intelligence and AI-powered response.' },
+  '/control-tower': { title: 'Supply Chain Control Tower', subtitle: 'Real-time visibility, disruption intelligence and AI-powered response.' },
   '/shipments': { title: 'Shipment Intelligence', subtitle: 'Prioritised view of shipment health, disruption exposure and AI actions.' },
   '/disruptions': { title: 'Disruption Intelligence', subtitle: 'Active disruption events with impact analysis, affected shipments, and AI-powered remediation.' },
   '/fleet': { title: 'Fleet Utilisation Optimizer', subtitle: 'Turn idle capacity into operational resilience.' },
@@ -30,8 +37,17 @@ const routePages: Record<string, { title: string; subtitle: string }> = {
 
 type Toast = { message: string; tone: 'success' | 'danger' };
 
-function App() {
-  const [path, setPath] = useState(window.location.hash.slice(1) || '/');
+function getInitialRoute(): string {
+  const hash = window.location.hash.slice(1);
+  if (hash) return hash.startsWith('/') ? hash : `/${hash}`;
+  const pathname = window.location.pathname;
+  if (pathname && pathname !== '/') return pathname;
+  return '/';
+}
+
+function AppShell() {
+  const { user, loading, signOut } = useAuth();
+  const [path, setPath] = useState<string>(getInitialRoute());
   const [collapsed, setCollapsed] = useState(false);
   const [copilot, setCopilot] = useState(false);
   const [notifications, setNotifications] = useState(false);
@@ -49,10 +65,21 @@ function App() {
   const [dashboardKpis, setDashboardKpis] = useState<any>(null);
 
   useEffect(() => {
-    const onHash = () => setPath(window.location.hash.slice(1) || '/');
-    window.addEventListener('hashchange', onHash);
-    return () => window.removeEventListener('hashchange', onHash);
+    const onRoute = () => setPath(getInitialRoute());
+    window.addEventListener('hashchange', onRoute);
+    window.addEventListener('popstate', onRoute);
+    return () => {
+      window.removeEventListener('hashchange', onRoute);
+      window.removeEventListener('popstate', onRoute);
+    };
   }, []);
+
+  const navigate = (to: string) => {
+    const cleanTo = to.startsWith('/') ? to : `/${to}`;
+    window.location.hash = cleanTo;
+    setPath(cleanTo);
+    setSearch('');
+  };
 
   // Sync state from live backend API on mount & path changes
   useEffect(() => {
@@ -109,8 +136,6 @@ function App() {
     }
   }, [toast]);
 
-  const navigate = (to: string) => { window.location.hash = to; setSearch(''); };
-  const page = routePages[path] || routePages['/'];
   const notify = (message: string, tone: Toast['tone'] = 'success') => setToast({ message, tone });
 
   // Handle recommendation action (Accept / Reject) with real backend execution
@@ -149,6 +174,56 @@ function App() {
     notify(`${assetId} redeployment executed. Utilisation increased to 54.2%.`);
   };
 
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#080d1c', display: 'grid', placeItems: 'center', color: '#f8fafc' }}>
+        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(8,181,229,0.1)', border: '1px solid #08b5e5', display: 'grid', placeItems: 'center', color: '#08b5e5' }}>
+            <ShieldCheck size={26} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <RefreshCw size={18} className="animate-spin" style={{ color: '#08b5e5' }} />
+            <span style={{ fontSize: '14px', fontWeight: '600', color: '#c7d5e8' }}>Initializing ChainGuard Control Tower...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Auth callback route
+  if (path === '/auth/callback') {
+    return <AuthCallback navigate={navigate} />;
+  }
+
+  // Public Landing route
+  if (path === '/' || path === '/landing') {
+    return <Landing onLaunch={() => navigate(user ? '/app' : '/login')} onSignIn={() => navigate('/login')} />;
+  }
+
+  // Auth routes
+  if (path === '/login') {
+    if (user) {
+      setTimeout(() => navigate('/app'), 0);
+      return null;
+    }
+    return <Login navigate={navigate} />;
+  }
+
+  if (path === '/signup') {
+    if (user) {
+      setTimeout(() => navigate('/app'), 0);
+      return null;
+    }
+    return <SignUp navigate={navigate} />;
+  }
+
+  // Protected Route Guard
+  if (!user) {
+    return <Login navigate={navigate} />;
+  }
+
+  const page = routePages[path] || routePages['/app'] || routePages['/'];
+
   return (
     <div className="app-shell">
       <Sidebar collapsed={collapsed} path={path} navigate={navigate} onToggle={() => setCollapsed((v) => !v)} />
@@ -162,13 +237,16 @@ function App() {
           setNotifications={setNotifications}
           profile={profile}
           setProfile={setProfile}
+          user={user}
+          onSignOut={signOut}
+          navigate={navigate}
         />
         <div className="content-area">
           {search ? (
             <SearchResults query={search} navigate={navigate} shipments={shipmentList} />
           ) : (
             <>
-              {path === '/' && (
+              {(path === '/app' || path === '/control-tower' || path === '/') && (
                 <ControlTower
                   navigate={navigate}
                   fleetUtilisation={fleetUtilisationPct}
@@ -221,7 +299,7 @@ function App() {
 
 function Sidebar({ collapsed, path, navigate, onToggle }: { collapsed: boolean; path: string; navigate: (to: string) => void; onToggle: () => void }) {
   const items: { label: string; path: string; icon: LucideIcon; badge?: string }[] = [
-    { label: 'Control Tower', path: '/', icon: LayoutDashboard },
+    { label: 'Control Tower', path: '/app', icon: LayoutDashboard },
     { label: 'Shipments', path: '/shipments', icon: Package, badge: '8' },
     { label: 'Disruptions', path: '/disruptions', icon: AlertTriangle, badge: '7' },
     { label: 'Fleet Optimizer', path: '/fleet', icon: Truck },
@@ -232,19 +310,22 @@ function Sidebar({ collapsed, path, navigate, onToggle }: { collapsed: boolean; 
   ];
   return (
     <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
-      <div className="brand" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+      <div className="brand" onClick={() => navigate('/app')} style={{ cursor: 'pointer' }}>
         <div className="brand-mark"><ShieldCheck size={28} /></div>
         <div className="brand-name"><b>CHAIN</b><b>GUARD</b><b>AI</b></div>
       </div>
       {!collapsed && <div className="nav-label">NAVIGATION</div>}
       <nav>
-        {items.map(({ label, path: itemPath, icon: Icon, badge }) => (
-          <button key={itemPath} className={`nav-item ${path === itemPath ? 'active' : ''}`} onClick={() => navigate(itemPath)} title={label}>
-            <Icon size={18} />
-            <span>{label}</span>
-            {badge && <em>{badge}</em>}
-          </button>
-        ))}
+        {items.map(({ label, path: itemPath, icon: Icon, badge }) => {
+          const isActive = path === itemPath || (itemPath === '/app' && (path === '/app' || path === '/control-tower'));
+          return (
+            <button key={itemPath} className={`nav-item ${isActive ? 'active' : ''}`} onClick={() => navigate(itemPath)} title={label}>
+              <Icon size={18} />
+              <span>{label}</span>
+              {badge && <em>{badge}</em>}
+            </button>
+          );
+        })}
       </nav>
       <div className="sidebar-status">
         <div><i className="dot green" />{!collapsed && 'All Systems Operational'}</div>
@@ -258,12 +339,17 @@ function Sidebar({ collapsed, path, navigate, onToggle }: { collapsed: boolean; 
 }
 
 function Header({
-  page, search, setSearch, onCopilot, notifications, setNotifications, profile, setProfile
+  page, search, setSearch, onCopilot, notifications, setNotifications, profile, setProfile, user, onSignOut, navigate
 }: {
   page: { title: string; subtitle: string }; search: string; setSearch: (value: string) => void;
   onCopilot: () => void; notifications: boolean; setNotifications: (value: boolean) => void;
   profile: boolean; setProfile: (value: boolean) => void;
+  user: any; onSignOut: () => Promise<void>; navigate: (to: string) => void;
 }) {
+  const userName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Operations Lead';
+  const userInitials = (userName.split(' ').map((n: string) => n[0]).join('') || 'CG').toUpperCase().slice(0, 2);
+  const userAvatar = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
+
   return (
     <header className="topbar">
       <div className="page-heading">
@@ -298,16 +384,33 @@ function Header({
 
         <div className="header-popover-wrap">
           <button className="profile-btn" onClick={() => setProfile(!profile)}>
-            <span className="avatar">CG</span>
-            <span>Operations Lead</span>
+            {userAvatar ? (
+              <img src={userAvatar} alt={userName} style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
+            ) : (
+              <span className="avatar">{userInitials}</span>
+            )}
+            <span>{userName}</span>
             <ChevronDown size={14} />
           </button>
           {profile && (
-            <div className="popover profile-pop">
-              <strong>Operations Control Tower</strong>
-              <small>IBM Hackathon Edition</small>
-              <button><Settings2 size={14} /> Preferences</button>
-              <button><ExternalLink size={14} /> Status: Online</button>
+            <div className="popover profile-pop" style={{ minWidth: '220px' }}>
+              <strong>{userName}</strong>
+              <small style={{ color: '#8fa3c1', wordBreak: 'break-all' }}>{user?.email || 'admin@chainguard.ai'}</small>
+              <div style={{ margin: '8px 0', padding: '4px 8px', background: 'rgba(8,181,229,0.1)', borderRadius: '4px', fontSize: '11px', color: '#08b5e5' }}>
+                {user?.app_metadata?.provider === 'google' ? 'Google SSO Authenticated' : 'Supabase Auth Verified'}
+              </div>
+              <button onClick={() => { setProfile(false); navigate('/'); }}><ExternalLink size={14} /> View Landing Page</button>
+              <button onClick={() => { setProfile(false); }}><Settings2 size={14} /> Preferences</button>
+              <button
+                onClick={async () => {
+                  setProfile(false);
+                  await onSignOut();
+                  navigate('/login');
+                }}
+                style={{ color: '#ff6570', borderTop: '1px solid #1f2d47', marginTop: '6px', paddingTop: '8px' }}
+              >
+                <LogOut size={14} /> Sign Out
+              </button>
             </div>
           )}
         </div>
@@ -3952,4 +4055,10 @@ function SearchResults({ query, navigate, shipments }: { query: string; navigate
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppShell />
+    </AuthProvider>
+  );
+}

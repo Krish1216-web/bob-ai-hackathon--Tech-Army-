@@ -44,12 +44,31 @@ export async function signInWithGoogle() {
     return { data: null, error: new Error("Supabase environment variables are not configured.") };
   }
 
+  const redirectTo = import.meta.env.VITE_SUPABASE_REDIRECT_URL || `${window.location.origin}/`;
+
   return await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${window.location.origin}/`
+      redirectTo
     }
   });
+}
+
+export async function resetPasswordForEmail(email: string) {
+  if (!supabase) {
+    return { data: null, error: new Error("Supabase environment variables are not configured.") };
+  }
+
+  const redirectTo = `${window.location.origin}/#login`;
+  return await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+}
+
+export async function signOut() {
+  if (!supabase) {
+    return { error: null };
+  }
+
+  return await supabase.auth.signOut();
 }
 
 export async function persistProfile(user: User | null, provider: string = "email") {
@@ -62,13 +81,19 @@ export async function persistProfile(user: User | null, provider: string = "emai
   const fullName = user.user_metadata?.full_name || user.user_metadata?.name || user.user_metadata?.fullName || email.split("@")[0];
   const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || "";
 
-  return await supabase.from("profiles").upsert({
-    id: user.id,
-    email,
-    full_name: fullName,
-    avatar_url: avatarUrl,
-    provider: normalizedProvider,
-    updated_at: new Date().toISOString()
-  }, { onConflict: "id" });
+  try {
+    return await supabase.from("profiles").upsert({
+      id: user.id,
+      email,
+      full_name: fullName,
+      avatar_url: avatarUrl,
+      provider: normalizedProvider,
+      updated_at: new Date().toISOString()
+    }, { onConflict: "id" });
+  } catch (e) {
+    console.warn("Profile table upsert skipped (table might be optional):", e);
+    return { data: null, error: null };
+  }
 }
+
 

@@ -21,7 +21,57 @@ export interface MapboxControlTower3DProps {
   loading?: boolean;
 }
 
-// Sample fallback rich supply chain telemetry data if props are minimal
+// Standalone self-hosted Basemap Styles (Guarantees visible rendering even without secret token)
+const darkGlobeStyle: any = {
+  version: 8,
+  sources: {
+    'carto-dark': {
+      type: 'raster',
+      tiles: [
+        'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        'https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      ],
+      tileSize: 256,
+      attribution: '&copy; CARTO &copy; OpenStreetMap'
+    }
+  },
+  layers: [
+    {
+      id: 'carto-dark-layer',
+      type: 'raster',
+      source: 'carto-dark',
+      minzoom: 0,
+      maxzoom: 22
+    }
+  ]
+};
+
+const satelliteGlobeStyle: any = {
+  version: 8,
+  sources: {
+    'esri-satellite': {
+      type: 'raster',
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+      ],
+      tileSize: 256,
+      attribution: '&copy; Esri World Imagery'
+    }
+  },
+  layers: [
+    {
+      id: 'esri-satellite-layer',
+      type: 'raster',
+      source: 'esri-satellite',
+      minzoom: 0,
+      maxzoom: 22
+    }
+  ]
+};
+
+// Default Telemetry Data
 const defaultContainersData: ColdContainerMapItem[] = [
   {
     id: 'CTN-8801',
@@ -31,7 +81,7 @@ const defaultContainersData: ColdContainerMapItem[] = [
     product: 'Pfizer COVID-19 Vaccine Vials',
     asset: 'TRK-204',
     lat: 18.9401,
-    lng: 72.8347, // Mumbai Port area
+    lng: 72.8347,
     origin: 'Mumbai',
     destination: 'Frankfurt',
     origin_coords: [18.9401, 72.8347],
@@ -73,7 +123,7 @@ const defaultContainersData: ColdContainerMapItem[] = [
     product: 'Insulin Pen Injectors',
     asset: 'TRK-088',
     lat: 13.0827,
-    lng: 80.2707, // Chennai Port
+    lng: 80.2707,
     origin: 'Chennai',
     destination: 'Singapore',
     origin_coords: [13.0827, 80.2707],
@@ -104,7 +154,7 @@ const defaultContainersData: ColdContainerMapItem[] = [
     product: 'AI Accelerator Wafers',
     asset: 'TRK-221',
     lat: 12.9716,
-    lng: 77.5946, // Bengaluru
+    lng: 77.5946,
     origin: 'Bengaluru',
     destination: 'Dubai',
     origin_coords: [12.9716, 77.5946],
@@ -129,21 +179,18 @@ const defaultContainersData: ColdContainerMapItem[] = [
   }
 ];
 
-// Idle Fleet Assets
 const idleAssetsData = [
-  { id: 'TRK-204-IDLE', name: 'Idle Reefer Truck TRK-204', location: 'Mumbai Port Gate 4', lat: 18.9600, lng: 72.8500, idleHours: '14h idle', cargoValue: '$0 (Idle)', util: '18.5%', matchScore: '91% Match for Reroute' },
-  { id: 'CTN-117-IDLE', name: 'Idle Reefer Container CTN-117', location: 'Mundra Logistics Park', lat: 22.8450, lng: 69.7200, idleHours: '22h idle', cargoValue: '$0 (Idle)', util: '12.0%', matchScore: '87% Match for Reroute' },
-  { id: 'TRK-089-IDLE', name: 'Idle Cargo Reefer TRK-089', location: 'Pune Inland Depot', lat: 18.5204, lng: 73.8567, idleHours: '8h idle', cargoValue: '$0 (Idle)', util: '24.3%', matchScore: '83% Match for Reroute' }
+  { id: 'TRK-204-IDLE', name: 'Idle Reefer Truck TRK-204', location: 'Mumbai Port Gate 4', lat: 18.9600, lng: 72.8500, idleHours: '14h idle', util: '18.5%', matchScore: '91% Match' },
+  { id: 'CTN-117-IDLE', name: 'Idle Reefer Container CTN-117', location: 'Mundra Logistics Park', lat: 22.8450, lng: 69.7200, idleHours: '22h idle', util: '12.0%', matchScore: '87% Match' },
+  { id: 'TRK-089-IDLE', name: 'Idle Cargo Reefer TRK-089', location: 'Pune Inland Depot', lat: 18.5204, lng: 73.8567, idleHours: '8h idle', util: '24.3%', matchScore: '83% Match' }
 ];
 
-// Cargo Vessels at sea
 const cargoVesselsData = [
-  { id: 'VSL-OCEAN-STAR', name: 'MV Ocean Star (Container Carrier)', lat: 15.5000, lng: 68.2000, cargo: 'Perishable Produce & Bio-Pharma', route: 'Mumbai → Rotterdam', speed: '18.4 knots', status: 'Rerouting South of Disruption' },
+  { id: 'VSL-OCEAN-STAR', name: 'MV Ocean Star', lat: 15.5000, lng: 68.2000, cargo: 'Perishable Produce & Bio-Pharma', route: 'Mumbai → Rotterdam', speed: '18.4 knots', status: 'Rerouting South of Disruption' },
   { id: 'VSL-PACIFIC-EXPRESS', name: 'MV Pacific Express', lat: 10.2000, lng: 85.4000, cargo: 'Industrial Electronics & Vaccines', route: 'Chennai → Singapore', speed: '21.0 knots', status: 'On Schedule' },
   { id: 'VSL-RED-SEA-TRADER', name: 'MV Red Sea Trader', lat: 20.8000, lng: 60.1000, cargo: 'High Value Perishables', route: 'Mundra → Dubai', speed: '16.2 knots', status: 'Normal Transit' }
 ];
 
-// Disruption Zones (Polygons & Heatmaps)
 const disruptionZones = [
   {
     id: 'DISRUPT-MUMBAI',
@@ -187,169 +234,166 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
 
-  // Layer & View Toggles
+  const [scriptLoaded, setScriptLoaded] = useState<boolean>(false);
   const [terrainEnabled, setTerrainEnabled] = useState<boolean>(true);
   const [disruptionsEnabled, setDisruptionsEnabled] = useState<boolean>(true);
   const [idleAssetsEnabled, setIdleAssetsEnabled] = useState<boolean>(true);
   const [mapStyle, setMapStyle] = useState<'dark' | 'satellite'>('dark');
   const [activeFlyTo, setActiveFlyTo] = useState<string | null>(null);
 
-  // Initialize Mapbox GL JS v3 3D Globe
+  // Load Mapbox GL JS CDN dynamically
   useEffect(() => {
-    if (!mapContainerRef.current) return;
-
-    // Set Mapbox access token (standard default or user token)
-    const mapboxToken = (import.meta.env.VITE_MAPBOX_TOKEN as string) || 
-      'pk.eyJ1IjoibWFwYm94Y29udHJvbHRvd2VyIiwiYSI6ImNtODFhYnJndzBhdDIya29uMXJwd2p2dnIifQ.xyz_mock_token_demo';
-
     if (window.mapboxgl) {
-      window.mapboxgl.accessToken = mapboxToken;
+      setScriptLoaded(true);
+      return;
     }
 
-    const styleUrl = mapStyle === 'satellite' 
-      ? 'mapbox://styles/mapbox/satellite-v9'
-      : 'mapbox://styles/mapbox/dark-v11';
+    if (!document.querySelector('link[href*="mapbox-gl.css"]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://api.mapbox.com/mapbox-gl-js/v3.9.0/mapbox-gl.css';
+      document.head.appendChild(link);
+    }
 
-    const map = new window.mapboxgl.Map({
-      container: mapContainerRef.current,
-      style: styleUrl,
-      center: [78.9629, 20.5937], // Centered over India / Indian Ocean / Middle East corridor
-      zoom: 2.85,
-      pitch: 50, // 3D Perspective angle
-      bearing: -10,
-      projection: 'globe', // Requirement 2: Full 3D Globe Projection
-      attributionControl: false,
-    });
+    const script = document.createElement('script');
+    script.src = 'https://api.mapbox.com/mapbox-gl-js/v3.9.0/mapbox-gl.js';
+    script.async = true;
+    script.onload = () => setScriptLoaded(true);
+    script.onerror = () => setScriptLoaded(true);
+    document.head.appendChild(script);
+  }, []);
 
-    mapRef.current = map;
+  // Initialize Mapbox GL JS 3D Globe ONCE when container mounts
+  useEffect(() => {
+    if (!scriptLoaded || !mapContainerRef.current) return;
+    if (!window.mapboxgl) return;
+    if (mapRef.current) return; // Prevent double creation
 
-    map.on('load', () => {
-      // 1. Atmosphere & Fog Styling (Requirement 2)
-      map.setFog({
-        color: '#020813', // Realistic space atmosphere color
-        'high-color': '#101b33',
-        'space-color': '#0b1021', // Starfield / deep space backdrop
-        'horizon-blend': 0.08,
-        'star-intensity': 0.7,
+    try {
+      const customToken = (import.meta.env.VITE_MAPBOX_TOKEN as string) || '';
+      const hasCustomToken = customToken && !customToken.includes('mock');
+
+      if (hasCustomToken) {
+        window.mapboxgl.accessToken = customToken;
+      }
+
+      const initialStyle = hasCustomToken
+        ? (mapStyle === 'satellite' ? 'mapbox://styles/mapbox/satellite-v9' : 'mapbox://styles/mapbox/dark-v11')
+        : (mapStyle === 'satellite' ? satelliteGlobeStyle : darkGlobeStyle);
+
+      const map = new window.mapboxgl.Map({
+        container: mapContainerRef.current,
+        style: initialStyle,
+        center: [78.9629, 20.5937],
+        zoom: 2.85,
+        pitch: 50,
+        bearing: -10,
+        projection: 'globe',
+        attributionControl: false,
       });
 
-      // 2. 3D Terrain DEM (Requirement 3)
-      try {
-        if (!map.getSource('mapbox-dem')) {
-          map.addSource('mapbox-dem', {
-            type: 'raster-dem',
-            url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
-            tileSize: 512,
-            maxzoom: 14,
+      mapRef.current = map;
+
+      const onStyleLoad = () => {
+        // Space Fog & Atmosphere Styling
+        try {
+          map.setFog({
+            color: '#020813',
+            'high-color': '#101b33',
+            'space-color': '#0b1021',
+            'horizon-blend': 0.08,
+            'star-intensity': 0.7,
           });
-        }
-        if (terrainEnabled) {
-          map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
-        }
-      } catch (err) {
-        console.warn('Terrain DEM loaded with standard fallback mesh:', err);
-      }
+        } catch (e) {}
 
-      // 3. 3D Building Extrusion Layer (Requirement 3)
-      try {
-        const layers = map.getStyle().layers;
-        const labelLayerId = layers.find(
-          (layer: any) => layer.type === 'symbol' && layer.layout && layer.layout['text-field']
-        )?.id;
-
-        if (!map.getLayer('3d-buildings')) {
-          map.addLayer(
-            {
-              id: '3d-buildings',
-              source: 'composite',
-              'source-layer': 'building',
-              filter: ['==', 'extrude', 'true'],
-              type: 'fill-extrusion',
-              minzoom: 12,
-              paint: {
-                'fill-extrusion-color': '#0f2342',
-                'fill-extrusion-height': [
-                  'interpolate',
-                  ['linear'],
-                  ['zoom'],
-                  12,
-                  0,
-                  12.5,
-                  ['get', 'height'],
-                ],
-                'fill-extrusion-base': [
-                  'interpolate',
-                  ['linear'],
-                  ['zoom'],
-                  12,
-                  0,
-                  12.5,
-                  ['get', 'min_height'],
-                ],
-                'fill-extrusion-opacity': 0.75,
-              },
-            },
-            labelLayerId
-          );
+        // Add 3D Terrain DEM if custom token available
+        if (hasCustomToken) {
+          try {
+            if (!map.getSource('mapbox-dem')) {
+              map.addSource('mapbox-dem', {
+                type: 'raster-dem',
+                url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+                tileSize: 512,
+                maxzoom: 14,
+              });
+            }
+            if (terrainEnabled) {
+              map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
+            }
+          } catch (err) {}
         }
-      } catch (e) {
-        console.warn('Building extrusion initialized with custom layer geometry');
-      }
 
-      // Render Disruption Zones & Animated Routes
-      renderDisruptionZonesAndRoutes(map);
-      // Render Custom Markers
-      renderMarkers(map);
-    });
+        renderDisruptionZonesAndRoutes(map);
+        renderMarkers(map);
+      };
+
+      map.on('load', onStyleLoad);
+      map.on('style.load', onStyleLoad);
+
+      // Force canvas resize to ensure map fills container completely
+      setTimeout(() => {
+        try {
+          map.resize();
+        } catch (e) {}
+      }, 200);
+
+    } catch (err) {
+      console.warn('Mapbox init error:', err);
+    }
 
     return () => {
       clearMarkers();
       if (mapRef.current) {
-        mapRef.current.remove();
+        try {
+          mapRef.current.remove();
+        } catch (e) {}
         mapRef.current = null;
       }
     };
-  }, [mapStyle]);
+  }, [scriptLoaded]);
 
-  // Toggle Terrain DEM dynamically
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) return;
-    try {
-      if (terrainEnabled) {
-        if (map.getSource('mapbox-dem')) {
-          map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
-        }
-      } else {
-        map.setTerrain(null);
-      }
-    } catch (e) {
-      console.warn('Terrain toggle:', e);
-    }
-  }, [terrainEnabled]);
-
-  // Update Markers & Layers when props/toggles change
+  // Handle Dynamic Basemap Style Toggle (Dark 3D vs Satellite) WITHOUT destroying map instance
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    if (map.isStyleLoaded()) {
-      renderMarkers(map);
-      toggleDisruptionsLayer(map, disruptionsEnabled);
-    } else {
-      map.once('load', () => {
+    try {
+      const customToken = (import.meta.env.VITE_MAPBOX_TOKEN as string) || '';
+      const hasCustomToken = customToken && !customToken.includes('mock');
+
+      const nextStyle = hasCustomToken
+        ? (mapStyle === 'satellite' ? 'mapbox://styles/mapbox/satellite-v9' : 'mapbox://styles/mapbox/dark-v11')
+        : (mapStyle === 'satellite' ? satelliteGlobeStyle : darkGlobeStyle);
+
+      map.setStyle(nextStyle);
+    } catch (e) {
+      console.warn('Style toggle error:', e);
+    }
+  }, [mapStyle]);
+
+  // Update Markers & Disruption Layers when props or layer toggles change
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    try {
+      if (map.isStyleLoaded()) {
         renderMarkers(map);
         toggleDisruptionsLayer(map, disruptionsEnabled);
-      });
-    }
+      }
+    } catch (e) {}
   }, [containers, selectedContainerId, idleAssetsEnabled, disruptionsEnabled]);
 
   const clearMarkers = () => {
-    markersRef.current.forEach((m) => m.remove());
+    markersRef.current.forEach((m) => {
+      try {
+        m.remove();
+      } catch (e) {}
+    });
     markersRef.current = [];
   };
 
-  // Helper to create GeoJSON circular polygon for Disruption Zones
+  // Helper for Circular GeoJSON Disruption Polygons
   const createCircleGeoJSON = (center: [number, number], radiusKm: number, points = 64) => {
     const coords: [number, number][] = [];
     const km = radiusKm;
@@ -362,7 +406,7 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
       const y = distanceY * Math.sin(theta);
       coords.push([center[0] + x, center[1] + y]);
     }
-    coords.push(coords[0]); // Close ring
+    coords.push(coords[0]);
     return {
       type: 'Feature',
       geometry: {
@@ -376,136 +420,140 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
     disruptionZones.forEach((dz) => {
       const fillId = `disruption-fill-${dz.id}`;
       const lineId = `disruption-line-${dz.id}`;
-      if (map.getLayer(fillId)) {
-        map.setLayoutProperty(fillId, 'visibility', enabled ? 'visible' : 'none');
-      }
-      if (map.getLayer(lineId)) {
-        map.setLayoutProperty(lineId, 'visibility', enabled ? 'visible' : 'none');
-      }
+      try {
+        if (map.getLayer(fillId)) {
+          map.setLayoutProperty(fillId, 'visibility', enabled ? 'visible' : 'none');
+        }
+        if (map.getLayer(lineId)) {
+          map.setLayoutProperty(lineId, 'visibility', enabled ? 'visible' : 'none');
+        }
+      } catch (e) {}
     });
   };
 
   // Render Disruption Polygons & 3D GeoJSON Route Corridors
   const renderDisruptionZonesAndRoutes = (map: any) => {
-    // 1. Add Disruption Polygons & Heatmaps
-    disruptionZones.forEach((dz) => {
-      const sourceId = `disruption-src-${dz.id}`;
-      const fillId = `disruption-fill-${dz.id}`;
-      const lineId = `disruption-line-${dz.id}`;
+    try {
+      disruptionZones.forEach((dz) => {
+        const sourceId = `disruption-src-${dz.id}`;
+        const fillId = `disruption-fill-${dz.id}`;
+        const lineId = `disruption-line-${dz.id}`;
 
-      const circleGeoJSON = createCircleGeoJSON(dz.center as [number, number], dz.radiusKm);
+        const circleGeoJSON = createCircleGeoJSON(dz.center as [number, number], dz.radiusKm);
 
-      if (!map.getSource(sourceId)) {
-        map.addSource(sourceId, {
+        if (!map.getSource(sourceId)) {
+          map.addSource(sourceId, {
+            type: 'geojson',
+            data: circleGeoJSON,
+          });
+        }
+
+        if (!map.getLayer(fillId)) {
+          map.addLayer({
+            id: fillId,
+            type: 'fill',
+            source: sourceId,
+            paint: {
+              'fill-color': dz.color,
+              'fill-opacity': 0.35,
+            },
+          });
+        }
+
+        if (!map.getLayer(lineId)) {
+          map.addLayer({
+            id: lineId,
+            type: 'line',
+            source: sourceId,
+            paint: {
+              'line-color': dz.color,
+              'line-width': 2.5,
+              'line-dasharray': [3, 2],
+            },
+          });
+        }
+      });
+
+      // 3D GeoJSON Route Corridors
+      const originalRouteGeoJSON = {
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: [
+            [72.8347, 18.9401], // Mumbai
+            [69.7041, 22.8395], // Mundra
+            [55.2708, 25.2048], // Dubai
+            [43.2500, 12.6000], // Bab-el-Mandeb
+            [32.5500, 29.9500], // Suez
+            [14.5000, 35.8000], // Med
+            [8.6821, 50.1109],  // Frankfurt
+          ],
+        },
+      };
+
+      const reroutedAlternativeGeoJSON = {
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: [
+            [72.8347, 18.9401], // Mumbai
+            [69.7041, 22.8395], // Mundra
+            [68.2000, 15.5000], // Arabian Sea
+            [80.2707, 13.0827], // Chennai
+            [103.8198, 1.3521], // Singapore
+          ],
+        },
+      };
+
+      if (!map.getSource('original-shipping-route')) {
+        map.addSource('original-shipping-route', {
           type: 'geojson',
-          data: circleGeoJSON,
+          data: originalRouteGeoJSON,
         });
-      }
 
-      if (!map.getLayer(fillId)) {
         map.addLayer({
-          id: fillId,
-          type: 'fill',
-          source: sourceId,
-          paint: {
-            'fill-color': dz.color,
-            'fill-opacity': 0.25,
-          },
-        });
-      }
-
-      if (!map.getLayer(lineId)) {
-        map.addLayer({
-          id: lineId,
+          id: 'original-route-line',
           type: 'line',
-          source: sourceId,
+          source: 'original-shipping-route',
           paint: {
-            'line-color': dz.color,
-            'line-width': 2,
-            'line-dasharray': [3, 2],
+            'line-color': '#08B5E5',
+            'line-width': 4,
+            'line-opacity': 0.85,
           },
         });
       }
-    });
 
-    // 2. 3D Animated GeoJSON Shipping Routes (Requirement 4)
-    // Original Route (Blue/Cyan): Mumbai -> Frankfurt via Suez
-    const originalRouteGeoJSON = {
-      type: 'Feature',
-      geometry: {
-        type: 'LineString',
-        coordinates: [
-          [72.8347, 18.9401], // Mumbai Port
-          [69.7041, 22.8395], // Mundra Port
-          [55.2708, 25.2048], // Dubai
-          [43.2500, 12.6000], // Bab-el-Mandeb Strait
-          [32.5500, 29.9500], // Suez Canal
-          [14.5000, 35.8000], // Mediterranean
-          [8.6821, 50.1109],  // Frankfurt
-        ],
-      },
-    };
+      if (!map.getSource('rerouted-shipping-route')) {
+        map.addSource('rerouted-shipping-route', {
+          type: 'geojson',
+          data: reroutedAlternativeGeoJSON,
+        });
 
-    // Re-Routed Alternative Route (Neon Amber): Mundra -> Cape of Good Hope -> Europe Corridor
-    const reroutedAlternativeGeoJSON = {
-      type: 'Feature',
-      geometry: {
-        type: 'LineString',
-        coordinates: [
-          [72.8347, 18.9401], // Mumbai
-          [69.7041, 22.8395], // Mundra (Emergency Hub)
-          [68.2000, 15.5000], // Arabian Sea Corridor
-          [80.2707, 13.0827], // Chennai
-          [103.8198, 1.3521], // Singapore
-        ],
-      },
-    };
-
-    if (!map.getSource('original-shipping-route')) {
-      map.addSource('original-shipping-route', {
-        type: 'geojson',
-        data: originalRouteGeoJSON,
-      });
-
-      map.addLayer({
-        id: 'original-route-line',
-        type: 'line',
-        source: 'original-shipping-route',
-        paint: {
-          'line-color': '#08B5E5',
-          'line-width': 3.5,
-          'line-opacity': 0.85,
-        },
-      });
-    }
-
-    if (!map.getSource('rerouted-shipping-route')) {
-      map.addSource('rerouted-shipping-route', {
-        type: 'geojson',
-        data: reroutedAlternativeGeoJSON,
-      });
-
-      map.addLayer({
-        id: 'rerouted-route-line',
-        type: 'line',
-        source: 'rerouted-shipping-route',
-        paint: {
-          'line-color': '#F59E0B',
-          'line-width': 4,
-          'line-dasharray': [4, 4],
-          'line-opacity': 0.95,
-        },
-      });
+        map.addLayer({
+          id: 'rerouted-route-line',
+          type: 'line',
+          source: 'rerouted-shipping-route',
+          paint: {
+            'line-color': '#F59E0B',
+            'line-width': 4.5,
+            'line-dasharray': [4, 4],
+            'line-opacity': 0.95,
+          },
+        });
+      }
+    } catch (e) {
+      console.warn('Routes rendering error:', e);
     }
   };
 
-  // Render Custom HTML Markers with Popups & Breach Pulsing Rings (Requirement 4 & 5)
+  // Render Custom Markers (Containers, Idle Assets, Vessels)
   const renderMarkers = (map: any) => {
     clearMarkers();
+    if (!window.mapboxgl) return;
 
     const displayContainers = containers.length > 0 ? containers : defaultContainersData;
 
-    // A. Active Cold Chain Container Markers
+    // A. Active Cold Chain Containers
     displayContainers.forEach((c) => {
       const isSelected = c.id === selectedContainerId;
       const isCritical = c.status === 'CRITICAL';
@@ -516,7 +564,6 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
       const el = document.createElement('div');
       el.className = 'mapbox-custom-marker';
 
-      // Requirement 4: Pulsing red ring animation around containers experiencing temperature breach
       el.innerHTML = `
         <div style="position: relative; display: flex; align-items: center; justify-content: center;">
           ${
@@ -569,7 +616,6 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
         if (onSelectContainer) onSelectContainer(c.id);
       });
 
-      // Requirement 5: Rich Dynamic Popups displaying Container details
       const popupHTML = `
         <div style="font-family: inherit;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
@@ -620,17 +666,19 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
         </div>
       `;
 
-      const popup = new window.mapboxgl.Popup({ offset: 20 }).setHTML(popupHTML);
+      try {
+        const popup = new window.mapboxgl.Popup({ offset: 20 }).setHTML(popupHTML);
 
-      const marker = new window.mapboxgl.Marker({ element: el })
-        .setLngLat([c.lng, c.lat])
-        .setPopup(popup)
-        .addTo(map);
+        const marker = new window.mapboxgl.Marker({ element: el })
+          .setLngLat([c.lng, c.lat])
+          .setPopup(popup)
+          .addTo(map);
 
-      markersRef.current.push(marker);
+        markersRef.current.push(marker);
+      } catch (e) {}
     });
 
-    // B. Idle Fleet Assets Markers (Requirement 4)
+    // B. Idle Fleet Assets
     if (idleAssetsEnabled) {
       idleAssetsData.forEach((asset) => {
         const el = document.createElement('div');
@@ -666,18 +714,20 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
           </div>
         `;
 
-        const popup = new window.mapboxgl.Popup({ offset: 15 }).setHTML(popupHTML);
+        try {
+          const popup = new window.mapboxgl.Popup({ offset: 15 }).setHTML(popupHTML);
 
-        const marker = new window.mapboxgl.Marker({ element: el })
-          .setLngLat([asset.lng, asset.lat])
-          .setPopup(popup)
-          .addTo(map);
+          const marker = new window.mapboxgl.Marker({ element: el })
+            .setLngLat([asset.lng, asset.lat])
+            .setPopup(popup)
+            .addTo(map);
 
-        markersRef.current.push(marker);
+          markersRef.current.push(marker);
+        } catch (e) {}
       });
     }
 
-    // C. Cargo Vessels at sea (Requirement 4)
+    // C. Cargo Vessels
     cargoVesselsData.forEach((vessel) => {
       const el = document.createElement('div');
       el.className = 'mapbox-custom-marker';
@@ -712,72 +762,82 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
         </div>
       `;
 
-      const popup = new window.mapboxgl.Popup({ offset: 15 }).setHTML(popupHTML);
+      try {
+        const popup = new window.mapboxgl.Popup({ offset: 15 }).setHTML(popupHTML);
 
-      const marker = new window.mapboxgl.Marker({ element: el })
-        .setLngLat([vessel.lng, vessel.lat])
-        .setPopup(popup)
-        .addTo(map);
+        const marker = new window.mapboxgl.Marker({ element: el })
+          .setLngLat([vessel.lng, vessel.lat])
+          .setPopup(popup)
+          .addTo(map);
 
-      markersRef.current.push(marker);
+        markersRef.current.push(marker);
+      } catch (e) {}
     });
   };
 
-  // Requirement 5: Fly-To Navigation Handlers
+  // Fly-To Handlers
   const handleFlyToPortStrike = () => {
     setActiveFlyTo('strike');
     const map = mapRef.current;
     if (!map) return;
-    map.flyTo({
-      center: [72.8347, 18.9401], // Mumbai Port
-      zoom: 9.5,
-      pitch: 60,
-      bearing: -20,
-      duration: 2200,
-      essential: true,
-    });
+    try {
+      map.flyTo({
+        center: [72.8347, 18.9401],
+        zoom: 9.5,
+        pitch: 60,
+        bearing: -20,
+        duration: 2200,
+        essential: true,
+      });
+    } catch (e) {}
   };
 
   const handleFlyToTempBreachContainer = () => {
     setActiveFlyTo('breach');
     const map = mapRef.current;
     if (!map) return;
-    map.flyTo({
-      center: [72.8347, 18.9401], // CTN-8801 Vaccine Reefer Container
-      zoom: 11,
-      pitch: 65,
-      bearing: 15,
-      duration: 2400,
-      essential: true,
-    });
+    try {
+      map.flyTo({
+        center: [72.8347, 18.9401],
+        zoom: 11,
+        pitch: 65,
+        bearing: 15,
+        duration: 2400,
+        essential: true,
+      });
+    } catch (e) {}
   };
 
   const handleFlyToIdleFleet = () => {
     setActiveFlyTo('idle');
     const map = mapRef.current;
     if (!map) return;
-    map.flyTo({
-      center: [69.7041, 22.8395], // Mundra Hub & Idle Fleet Assets
-      zoom: 8.5,
-      pitch: 55,
-      bearing: 5,
-      duration: 2000,
-      essential: true,
-    });
+    try {
+      map.flyTo({
+        center: [69.7041, 22.8395],
+        zoom: 8.5,
+        pitch: 55,
+        bearing: 5,
+        duration: 2000,
+        essential: true,
+      });
+    } catch (e) {}
   };
 
   const handleReset3DView = () => {
     setActiveFlyTo('reset');
     const map = mapRef.current;
     if (!map) return;
-    map.flyTo({
-      center: [78.9629, 20.5937],
-      zoom: 2.85,
-      pitch: 50,
-      bearing: -10,
-      duration: 2000,
-      essential: true,
-    });
+    try {
+      map.flyTo({
+        center: [78.9629, 20.5937],
+        zoom: 2.85,
+        pitch: 50,
+        bearing: -10,
+        duration: 2000,
+        essential: true,
+      });
+    } catch (e) {}
   };
 
   return (
@@ -800,7 +860,7 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
         </div>
       </div>
 
-      {/* Fly-To Control Toolbar (Requirement 5) */}
+      {/* Fly-To Control Toolbar */}
       <div className="mapbox3d-flyto-bar">
         <button
           className={`mapbox3d-btn ${activeFlyTo === 'strike' ? 'active' : ''}`}
@@ -850,7 +910,7 @@ export const MapboxControlTower3D: React.FC<MapboxControlTower3DProps> = ({
         )}
       </div>
 
-      {/* Layer Toggle Controls Panel (Requirement 5) */}
+      {/* Layer Toggle Controls Panel */}
       <div className="mapbox3d-layer-panel">
         <div className="mapbox3d-layer-title">Layer Controls</div>
 
