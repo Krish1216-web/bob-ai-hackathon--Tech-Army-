@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import MapboxControlTower3D from './MapboxControlTower3D';
 import {
   ArrowRight, CheckCircle2, FlaskConical,
   LayoutDashboard, Menu, Package, ShieldCheck, Ship, Sparkles, Thermometer, Truck, X,
@@ -140,8 +139,17 @@ export default function Landing({ onLaunch }: { onLaunch: () => void }) {
                     <div className="preview-kpi"><b className="green">71.4%</b><span>Utilisation</span></div>
                     <div className="preview-kpi"><b className="cyan">$4.8M</b><span>Cargo at Risk</span></div>
                   </div>
-                  <div className="preview-map" style={{ height: 380, marginTop: 10, marginBottom: 10 }}>
-                    <MapboxControlTower3D />
+                  <div className="preview-map">
+                    <svg viewBox="0 0 280 180" className="preview-svg">
+                      <rect width="280" height="180" fill="#101827" />
+                      <path className="route active-route" d="M95 120 L123 75 L190 38 L218 12" />
+                      <path className="route alt-route" d="M75 85 L218 12" />
+                      <path className="route disrupted-route" d="M95 120 L75 85" />
+                      <circle cx="95" cy="120" r="4" fill="#FF414D" />
+                      <circle cx="75" cy="85" r="4" fill="#08B5E5" />
+                      <circle cx="190" cy="38" r="4" fill="#168BFF" />
+                      <circle cx="218" cy="12" r="4" fill="#16C784" />
+                    </svg>
                   </div>
                   <div className="preview-disruptions">
                     <div className={`preview-dis ${activeDisruption === 'mumbai' ? 'selected' : ''}`} onClick={() => setActiveDisruption('mumbai')} style={{ cursor: 'pointer' }}>
