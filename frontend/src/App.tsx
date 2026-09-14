@@ -544,6 +544,25 @@ function AuthModal({ onClose, onSuccess, notify }: { onClose: () => void; onSucc
             </div>
           </div>
 
+          <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+            <button
+              type="button"
+              className="small-btn"
+              style={{ flex: 1, background: '#0f172a', color: '#e2e8f0', border: '1px solid #2dd4bf', justifyContent: 'center' }}
+              onClick={handleGoogle}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-label="Google">
+                  <path d="M21.8 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.8 3-4.4 3-7.3z" fill="#4285F4" />
+                  <path d="M12 21.2c2.6 0 4.8-.9 6.4-2.4l-3.2-2.5c-.9.6-2.1.9-3.2.9-2.5 0-4.6-1.7-5.3-4H.5v2.6A11 11 0 0 0 12 21.2z" fill="#34A853" />
+                  <path d="M6.7 14.1a6.5 6.5 0 0 1 0-4.2V7.2H.5a11 11 0 0 0 0 10.1l6.2-4.2z" fill="#FBBC05" />
+                  <path d="M12 6.2c1.4 0 2.7.5 3.7 1.5l2.8-2.8A9.8 9.8 0 0 0 12 2a11 11 0 0 0-9.5 6.2l6.2 4.2C9.4 8 10.5 6.2 12 6.2z" fill="#EA4335" />
+                </svg>
+                Continue with Google
+              </span>
+            </button>
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', margin: '14px 0', gap: 10 }}>
             <div style={{ flex: 1, height: 1, background: '#202c42' }} />
             <span style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>or email credentials</span>
