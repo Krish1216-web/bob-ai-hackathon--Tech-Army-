@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, useRef, useCallback, type ReactNode } from 'react';
 import {
   AlertTriangle, ArrowRight, BarChart3, Bell, Check, CheckCircle2, ChevronDown, ChevronLeft,
   ChevronRight, CircleDollarSign, Clock3, Container, Download, ExternalLink, Filter,
