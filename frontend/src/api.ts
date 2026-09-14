@@ -1,6 +1,6 @@
 import { Shipment, AIAction, Severity } from './data';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
 async function fetchJson<T>(endpoint: string, options?: RequestInit): Promise<T | null> {
   try {
