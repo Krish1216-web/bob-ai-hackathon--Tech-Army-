@@ -1,4 +1,4 @@
-﻿import { shipments, disruptions, opportunities } from './data';
+import { shipments, disruptions, opportunities } from './data';
 
 export interface CopilotGenerationResult {
   query: string;
@@ -296,7 +296,7 @@ export async function executeCopilotQuery(
     conversation_history?: any[];
   }
 ): Promise<CopilotGenerationResult> {
-  const provider = options?.provider || 'auto';
+  const provider = options?.provider || 'gemini';
   const apiKey = options?.api_key || localStorage.getItem('chainguard_llm_key') || '';
   const history = options?.conversation_history || [];
 

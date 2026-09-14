@@ -3041,9 +3041,9 @@ function CopilotPage({ navigate, notify }: { navigate?: (to: string) => void; no
   const [showSettings, setShowSettings] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
-  // Persistent Model & API Key Settings
+  // Persistent Model & API Key Settings (Default: Google Gemini 1.5 Flash)
   const [provider, setProvider] = useState<string>(() => {
-    return localStorage.getItem('chainguard_llm_provider') || 'auto';
+    return localStorage.getItem('chainguard_llm_provider') || 'gemini';
   });
   const [apiKey, setApiKey] = useState<string>(() => {
     return localStorage.getItem('chainguard_llm_key') || '';
@@ -3503,9 +3503,9 @@ function Copilot({ onClose, navigate }: { onClose: () => void; navigate?: (to: s
   const [showSettings, setShowSettings] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
-  // Persistent Model & API Key Settings
+  // Persistent Model & API Key Settings (Default: Google Gemini 1.5 Flash)
   const [provider, setProvider] = useState<string>(() => {
-    return localStorage.getItem('chainguard_llm_provider') || 'auto';
+    return localStorage.getItem('chainguard_llm_provider') || 'gemini';
   });
   const [apiKey, setApiKey] = useState<string>(() => {
     return localStorage.getItem('chainguard_llm_key') || '';
