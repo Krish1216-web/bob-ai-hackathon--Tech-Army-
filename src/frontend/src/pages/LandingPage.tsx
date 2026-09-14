@@ -1,3 +1,4 @@
+import '../Landing.css';
 import { useState } from 'react';
 import {
   ArrowRight, CheckCircle2, FlaskConical,
