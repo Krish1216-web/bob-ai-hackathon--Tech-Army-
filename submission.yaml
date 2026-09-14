@@ -1,0 +1,61 @@
+# =============================================================================
+# HACKATHON SUBMISSION METADATA
+# =============================================================================
+team:
+  name: "Tech Army"
+  track: "AI"
+  lead:
+    name: "Krish Patel"
+    email: "krishpatel.techarmy@gmail.com"
+  members:
+    - name: "Krish Patel"
+      email: "krishpatel.techarmy@gmail.com"
+
+submission:
+  title: "ChainGuard AI — AI-Powered Supply Chain Resilience & Fleet Utilisation Control Tower"
+
+  problem_statement: >
+    Global and domestic supply chains face severe cascading disruptions, multi-hour delays,
+    and perishable cold-chain excursions (e.g. mRNA vaccines exceeding 2-8°C SOP bounds),
+    costing enterprises billions in spoiled cargo, idle fleet capacity (under 20% utilisation),
+    and reactive, uncoordinated manual dispatching.
+
+  solution_summary: >
+    ChainGuard AI is a unified, judge-ready enterprise control tower combining real-time disruption
+    corridor intelligence, LiveCold 4-layer IoT anomaly detection with dynamic Sigmoid spoilage modeling
+    and Haversine cold-hub emergency diversion, fleet utilization optimization with idle asset redeployment,
+    closed-loop AI recommendation execution, and Monte Carlo What-If disruption simulation—all persisted
+    authoritatively in Supabase PostgreSQL.
+
+  key_features:
+    - "Multi-Corridor Disruption Intelligence with automated delay calculations and financial exposure aggregation"
+    - "LiveCold IoT Cold Chain Anomaly Engine (L1 Bounds, L2 Rate of Change, L3 Z-Score, L4 Stuck Sensor) with dynamic Sigmoid spoilage estimation"
+    - "Automated Haversine Certified Cold-Storage Hub Selection & 1-click Emergency Diversion Corridor Routing"
+    - "Fleet Utilisation Optimizer with automated idle asset detection and high-match cargo redeployment"
+    - "Closed-loop AI Prescriptive Recommendations and Monte Carlo What-If Disruption Scenario Simulator"
+
+  tech_stack:
+    languages: ["Python", "TypeScript", "SQL"]
+    frameworks: ["FastAPI", "React", "Vite", "Tailwind CSS", "SQLAlchemy", "Pydantic"]
+    ibm_technologies: ["watsonx.ai fallback engine", "IBM Granite LLM prompt schemas", "IBM Bob"]
+    databases: ["PostgreSQL", "Supabase"]
+    other: ["Leaflet Maps", "Recharts", "Lucide React", "Pytest", "Uvicorn"]
+
+  what_we_are_most_proud_of: >
+    The seamless end-to-end integration between real-time IoT cold-chain physics (Sigmoid spoilage curves,
+    4-layer anomaly diagnostics) and macroeconomic disruption intelligence, allowing dispatchers to execute
+    closed-loop mutations (rerouting, fleet redeployment, hub diversion) that immediately persist to Supabase
+    PostgreSQL and synchronize across all views in real time.
+
+  known_limitations: >
+    High-frequency IoT sensor telemetry ingestion currently runs via REST API batch polling; production
+    deployment at scale would leverage direct WebSocket streams or Kafka/MQTT ingest gateways.
+
+artifacts:
+  source_code: "src/"
+  setup_guide: "docs/setup-guide.md"
+  architecture_doc: "docs/architecture.md"
+  demo_video: "demo/demo-video-link.txt"
+  live_demo: "demo/live-demo-url.txt"
+  screenshots: "demo/screenshots/"
+  presentation: "presentation/"

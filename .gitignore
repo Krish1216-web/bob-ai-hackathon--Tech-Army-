@@ -1,0 +1,49 @@
+# Environment files & Secrets
+.env
+.env.*
+!.env.example
+*.env
+backend/.env
+frontend/.env
+src/backend/.env
+src/frontend/.env
+*.pem
+*.key
+
+# Local databases & operational artifacts
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+chainguard.db
+scratch/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+venv/
+.venv/
+env/
+**/__pycache__/
+
+# Node / Frontend
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
