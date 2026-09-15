@@ -1,8 +1,8 @@
-# 🚀 ChainGuard AI — AI-Powered Supply Chain Resilience & Fleet Utilisation Control Tower
+# 🚀 ChainGuard AI — AI-Powered Supply Chain Disruption Assistant & Fleet Utilisation Optimizer
 
 > **IBM BoB AI Innovation Hackathon 2026** | **Track:** AI | **Team:** Tech Army
 
-[![Validate Submission](https://github.com/Krish1216-web/bob-ai-hackathon--Tech-Army/actions/workflows/validate.yml/badge.svg)](https://github.com/Krish1216-web/bob-ai-hackathon--Tech-Army/actions/workflows/validate.yml)
+
 
 ---
 
