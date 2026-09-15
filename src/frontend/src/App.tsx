@@ -108,8 +108,11 @@ function AppShell() {
           api.getIdleOpportunities()
         ]);
 
-        if (dbDashboard && dbDashboard.kpis) {
-          setDashboardKpis(dbDashboard.kpis);
+        if (dbDashboard) {
+          if (dbDashboard.kpis) setDashboardKpis(dbDashboard.kpis);
+          if (typeof dbDashboard.accepted_actions_count === 'number') {
+            setAccepted(dbDashboard.accepted_actions_count);
+          }
         }
         if (dbShipments && dbShipments.length > 0) {
           setShipmentList(dbShipments);
@@ -127,13 +130,13 @@ function AppShell() {
             }))
           );
         }
-        if (dbRecs && dbRecs.length > 0) {
+        if (Array.isArray(dbRecs)) {
           setActionList(dbRecs);
         }
         if (dbFleet && dbFleet.overall_utilisation_pct) {
           setFleetUtilisationPct(`${dbFleet.overall_utilisation_pct}%`);
         }
-        if (dbIdle && dbIdle.length > 0) {
+        if (Array.isArray(dbIdle)) {
           setOpportunityList(dbIdle);
         }
       } catch (err) {
@@ -155,9 +158,21 @@ function AppShell() {
   // Handle recommendation action (Accept / Reject) with real backend execution
   const handleAction = async (id: string, didAccept: boolean) => {
     await api.executeAction(id, didAccept);
-    setActionList((current) => current.filter((item) => item.id !== id));
-    if (didAccept) {
+    const [dbRecs, dbDashboard] = await Promise.all([
+      api.getRecommendations(),
+      api.getDashboard()
+    ]);
+    if (Array.isArray(dbRecs)) {
+      setActionList(dbRecs);
+    } else {
+      setActionList((current) => current.filter((item) => item.id !== id));
+    }
+    if (dbDashboard && typeof dbDashboard.accepted_actions_count === 'number') {
+      setAccepted(dbDashboard.accepted_actions_count);
+    } else if (didAccept) {
       setAccepted((val) => val + 1);
+    }
+    if (didAccept) {
       if (id === 'a1' || id === 'REC-a1') {
         setShipmentList((prev) =>
           prev.map((s) =>
@@ -181,7 +196,18 @@ function AppShell() {
   // Handle redeployment with real backend execution
   const handleRedeploy = async (assetId: string) => {
     await api.redeployAsset(assetId, 'SHP-1042');
-    setOpportunityList((prev) => prev.filter((o) => o.asset !== assetId));
+    const [dbIdle, dbRecs] = await Promise.all([
+      api.getIdleOpportunities(),
+      api.getRecommendations()
+    ]);
+    if (Array.isArray(dbIdle)) {
+      setOpportunityList(dbIdle);
+    } else {
+      setOpportunityList((prev) => prev.filter((o) => o.asset !== assetId));
+    }
+    if (Array.isArray(dbRecs)) {
+      setActionList(dbRecs);
+    }
     if (assetId === 'TRK-204') {
       setFleetUtilisationPct('74.8%');
     }
@@ -1312,6 +1338,9 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
     }
   });
 
+  const [isLocating, setIsLocating] = useState<boolean>(false);
+  const [locationPreset, setLocationPreset] = useState<string>('mumbai');
+
   // New Container Form State
   const [newContainer, setNewContainer] = useState({
     container_id: '',
@@ -1324,6 +1353,88 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
     cargo_value: 950000,
     initial_temperature: 5.2
   });
+
+  const handleCargoTypeChange = (cargoType: string) => {
+    let minTemp = 2.0;
+    let maxTemp = 8.0;
+    let initTemp = 5.2;
+
+    if (cargoType === 'Frozen Plasma') {
+      minTemp = -25.0;
+      maxTemp = -15.0;
+      initTemp = -20.0;
+    } else if (cargoType === 'Fresh Produce') {
+      minTemp = 4.0;
+      maxTemp = 10.0;
+      initTemp = 6.5;
+    } else if (cargoType === 'Dairy & Confectionery') {
+      minTemp = 2.0;
+      maxTemp = 6.0;
+      initTemp = 4.0;
+    } else if (cargoType === 'Specialty Biologics') {
+      minTemp = 2.0;
+      maxTemp = 8.0;
+      initTemp = 4.5;
+    } else {
+      minTemp = 2.0;
+      maxTemp = 8.0;
+      initTemp = 5.2;
+    }
+
+    setNewContainer(prev => ({
+      ...prev,
+      cargo_type: cargoType,
+      safe_min_temp: minTemp,
+      safe_max_temp: maxTemp,
+      initial_temperature: initTemp
+    }));
+  };
+
+  const handleGetLiveGPS = () => {
+    if (!navigator.geolocation) {
+      if (notify) notify('Geolocation is not supported by your browser.');
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = parseFloat(position.coords.latitude.toFixed(4));
+        const lng = parseFloat(position.coords.longitude.toFixed(4));
+        setNewContainer(prev => ({ ...prev, latitude: lat, longitude: lng }));
+        setLocationPreset('live_gps');
+        setIsLocating(false);
+        if (notify) notify(`📍 Live GPS detected: ${lat}, ${lng}`);
+      },
+      (error) => {
+        setIsLocating(false);
+        if (notify) notify(`GPS location error: ${error.message}`);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const LOCATION_PRESETS: Record<string, { lat: number; lng: number }> = {
+    'mumbai': { lat: 19.0760, lng: 72.8777 },
+    'delhi': { lat: 28.6139, lng: 77.2090 },
+    'pune': { lat: 18.5204, lng: 73.8567 },
+    'bhiwandi': { lat: 19.2968, lng: 73.0628 },
+    'mundra': { lat: 22.8450, lng: 69.7200 },
+    'ahmedabad': { lat: 23.0225, lng: 72.5714 },
+    'hyderabad': { lat: 17.3850, lng: 78.4867 },
+    'bengaluru': { lat: 12.9716, lng: 77.5946 }
+  };
+
+  const handleSelectLocationPreset = (presetKey: string) => {
+    setLocationPreset(presetKey);
+    if (presetKey !== 'custom' && LOCATION_PRESETS[presetKey]) {
+      const coords = LOCATION_PRESETS[presetKey];
+      setNewContainer(prev => ({
+        ...prev,
+        latitude: coords.lat,
+        longitude: coords.lng
+      }));
+    }
+  };
 
   const loadAllColdChainData = async (mode: string = diversionMode) => {
     try {
@@ -1657,9 +1768,9 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
   // Merge backend mapData containers and custom added containers
   const containers: ColdContainerMapItem[] = useMemo(() => {
     const listMap = new Map<string, ColdContainerMapItem>();
+    customContainers.forEach(c => listMap.set(c.id || c.container_id, c));
     const baseItems = serverContainers.length > 0 ? serverContainers : defaultBaseContainers;
     baseItems.forEach(c => listMap.set(c.id || c.container_id, c));
-    customContainers.forEach(c => listMap.set(c.id || c.container_id, c));
     return Array.from(listMap.values());
   }, [serverContainers, customContainers]);
 
@@ -1898,6 +2009,12 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
     const valUsd = Number(newContainer.cargo_value) || 500000;
     const lat = Number(newContainer.latitude) || 19.0760;
     const lng = Number(newContainer.longitude) || 72.8777;
+
+    if (minT >= maxT) {
+      if (notify) notify('Safe Minimum Temperature must be strictly less than Safe Maximum Temperature.');
+      return;
+    }
+
     const isCrit = initTemp > maxT + 1.5 || initTemp < minT - 2.0;
     const isMed = initTemp > maxT || initTemp < minT;
     const stat: 'CRITICAL' | 'MEDIUM' | 'NORMAL' = isCrit ? 'CRITICAL' : isMed ? 'MEDIUM' : 'NORMAL';
@@ -1967,11 +2084,11 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
       await api.createContainer({
         container_id: finalCid,
         shipment_id: finalShpId,
-        cargo_type: newContainer.cargo_type,
-        safe_min_temp: minT,
-        safe_max_temp: maxT,
-        initial_temperature: initTemp,
-        cargo_value: valUsd,
+        product_type: newContainer.cargo_type,
+        target_min_temperature: minT,
+        target_max_temperature: maxT,
+        current_temperature: initTemp,
+        cargo_value_usd: valUsd,
         latitude: lat,
         longitude: lng
       });
@@ -2719,16 +2836,16 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
                 </div>
 
                 <div className="input-field">
-                  <label>Cargo Type / Product *</label>
+                  <label>Cargo Type / Product SOP *</label>
                   <select
                     value={newContainer.cargo_type}
-                    onChange={(e) => setNewContainer({ ...newContainer, cargo_type: e.target.value })}
+                    onChange={(e) => handleCargoTypeChange(e.target.value)}
                   >
-                    <option value="Biopharma / Vaccines">Biopharma / Vaccines (2°C - 8°C)</option>
-                    <option value="Specialty Biologics">Specialty Biologics (2°C - 8°C)</option>
-                    <option value="Frozen Plasma">Frozen Plasma (-25°C - -15°C)</option>
-                    <option value="Fresh Produce">Fresh Produce (4°C - 10°C)</option>
-                    <option value="Dairy & Confectionery">Dairy &amp; Confectionery (2°C - 6°C)</option>
+                    <option value="Biopharma / Vaccines">Biopharma / Vaccines (2°C to 8°C)</option>
+                    <option value="Specialty Biologics">Specialty Biologics (2°C to 8°C)</option>
+                    <option value="Frozen Plasma">Frozen Plasma (-25°C to -15°C)</option>
+                    <option value="Fresh Produce">Fresh Produce (4°C to 10°C)</option>
+                    <option value="Dairy & Confectionery">Dairy &amp; Confectionery (2°C to 6°C)</option>
                   </select>
                 </div>
 
@@ -2773,25 +2890,37 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
                   </div>
                 </div>
 
-                <div className="form-row-2">
-                  <div className="input-field">
-                    <label>GPS Latitude</label>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      value={newContainer.latitude}
-                      onChange={(e) => setNewContainer({ ...newContainer, latitude: parseFloat(e.target.value) || 19.0 })}
-                    />
+                {/* Location Presets & Live GPS Auto-Detection */}
+                <div className="input-field" style={{ marginBottom: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <label style={{ margin: 0 }}>Initial Location / GPS Hub *</label>
+                    <button
+                      type="button"
+                      className="small-btn"
+                      disabled={isLocating}
+                      onClick={handleGetLiveGPS}
+                      style={{ padding: '3px 8px', fontSize: 11, background: '#102d46', color: '#08b5e5', borderColor: '#075879', display: 'flex', alignItems: 'center', gap: 4 }}
+                    >
+                      <MapPin size={12} />
+                      {isLocating ? 'Detecting...' : '📍 Detect My Location'}
+                    </button>
                   </div>
-                  <div className="input-field">
-                    <label>GPS Longitude</label>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      value={newContainer.longitude}
-                      onChange={(e) => setNewContainer({ ...newContainer, longitude: parseFloat(e.target.value) || 72.8 })}
-                    />
-                  </div>
+                  <select
+                    value={locationPreset}
+                    onChange={(e) => handleSelectLocationPreset(e.target.value)}
+                  >
+                    {locationPreset === 'live_gps' && (
+                      <option value="live_gps">📍 Detected Live GPS ({newContainer.latitude}, {newContainer.longitude})</option>
+                    )}
+                    <option value="mumbai">Navi Mumbai Central Hub (19.0760, 72.8777)</option>
+                    <option value="delhi">Delhi NCR Logistics Hub (28.6139, 77.2090)</option>
+                    <option value="pune">Pune Pharma Cold Hub (18.5204, 73.8567)</option>
+                    <option value="bhiwandi">Bhiwandi Cold Depot (19.2968, 73.0628)</option>
+                    <option value="mundra">Mundra Maritime Terminal (22.8450, 69.7200)</option>
+                    <option value="ahmedabad">Ahmedabad Logistics Hub (23.0225, 72.5714)</option>
+                    <option value="hyderabad">Hyderabad Cargo Terminal (17.3850, 78.4867)</option>
+                    <option value="bengaluru">Bengaluru Cold Depot (12.9716, 77.5946)</option>
+                  </select>
                 </div>
               </div>
               <div className="modal-footer">

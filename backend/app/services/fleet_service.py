@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
+from datetime import datetime
 from app.models.fleet_asset import FleetAsset
+from app.models.recommendation import Recommendation
 from app.schemas.fleet import FleetAssetResponse, FleetUtilisationStats, RedeploymentOpportunity
 
 class FleetService:
@@ -15,7 +17,7 @@ class FleetService:
         total = 186
         idle_assets = [a for a in assets if a.status == "IDLE"]
         active_assets = [a for a in assets if a.status in ["ACTIVE", "ASSIGNED"]]
-        idle = len(idle_assets) or 19
+        idle = len(idle_assets)
         active = 133 + (len(active_assets) - 3 if len(active_assets) > 3 else 0)
 
         trucks = [a for a in assets if a.asset_type == "TRUCK"]
@@ -53,8 +55,6 @@ class FleetService:
     @staticmethod
     def get_redeployment_opportunities(db: Session) -> List[RedeploymentOpportunity]:
         idle_assets = db.query(FleetAsset).filter(FleetAsset.status == "IDLE").all()
-        if not idle_assets:
-            idle_assets = db.query(FleetAsset).all()
 
         shipment_route_map = {
             "TRK-204": {"shipment": "SHP-1042", "route": "Mumbai → Frankfurt", "cargo": "Vaccines", "value": "$42,000"},
@@ -96,7 +96,19 @@ class FleetService:
             asset.status = "ASSIGNED"
             asset.utilisation_pct = 54.2
             asset.assigned_shipment_id = target_shipment
-            db.commit()
+
+        # Mark any corresponding recommendation as actioned
+        recs = db.query(Recommendation).filter(
+            (Recommendation.asset_id == asset_id) |
+            (Recommendation.subject.contains(asset_id))
+        ).all()
+        for r in recs:
+            r.actioned = True
+            r.action_type = "ACCEPTED"
+            r.actioned_at = datetime.utcnow()
+
+        db.commit()
+        if asset:
             db.refresh(asset)
             return {
                 "success": True,
