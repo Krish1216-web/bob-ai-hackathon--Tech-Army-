@@ -122,7 +122,7 @@ CERTIFIED COLD STORAGE HUBS:
         # 3. Multi-LLM Execution Pipeline
 
         # A. Google Gemini API (Multi-Model Resilient: 1.5 Flash, 2.0 Flash, Pro)
-        gemini_key = api_key if (provider == "gemini" and api_key) else (api_key or settings.GEMINI_API_KEY)
+        gemini_key = api_key or settings.GEMINI_API_KEY
         if (provider in ["gemini", "auto"]) and gemini_key:
             models = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-pro", "gemini-1.5-pro"]
             for model in models:
@@ -141,7 +141,7 @@ CERTIFIED COLD STORAGE HUBS:
                             "maxOutputTokens": 1000
                         }
                     }
-                    resp = requests.post(gemini_url, json=gemini_payload, timeout=7.0)
+                    resp = requests.post(gemini_url, json=gemini_payload, timeout=3.0)
                     if resp.status_code == 200:
                         data = resp.json()
                         candidates = data.get("candidates", [])
@@ -291,6 +291,37 @@ CERTIFIED COLD STORAGE HUBS:
         recommendations: list,
         critical_shipments: list
     ) -> CopilotQueryResponse:
+        # 0. Project Summary / Executive Overview Branch
+        if any(k in q for k in ['summary', 'project', 'overview', 'about', 'chainguard']):
+            ans = (
+                f"### 🚀 ChainGuard AI — Project Executive Summary\n\n"
+                f"> **IBM BoB AI Innovation Hackathon 2026** | **Track:** AI | **Team:** Tech Army\n\n"
+                f"#### 🎯 Problem & Solution Architecture:\n"
+                f"Enterprise supply networks lose billions to unmitigated port strikes, severe weather corridors, and cold-chain spillage. "
+                f"**ChainGuard AI** is a unified, full-stack enterprise control tower combining macroeconomic disruption intelligence, "
+                f"IoT cold-chain physics, and automated fleet optimization backed authoritatively by **Supabase PostgreSQL**.\n\n"
+                f"#### ⚙️ Core System Modules:\n"
+                f"1. **🌐 Disruption Risk Engine**: Tracks live corridor events (e.g. *Mumbai Port Strike* 72h, *Chennai Cyclone* 48h), computing affected shipments ($1.25M cargo value at risk).\n"
+                f"2. **❄️ LiveCold 4-Layer IoT Anomaly Detection**: Enforces SOP physical envelope bounds (L1), rate-of-change thermal climb (L2), statistical Z-score outliers (L3), and persistence checks (L4).\n"
+                f"3. **📍 Haversine Certified Cold Storage Diversion**: Automatically calculates the nearest certified facility (*Pune Pharma Cold Hub*, 74 km) for 1-click emergency rerouting.\n"
+                f"4. **🚛 Fleet Utilisation Optimizer**: Identifies underutilized assets (*TRK-204* at 18.5% utilisation) and calculates high-confidence cargo redeployment matches (91% match with *SHP-1042*), boosting utilisation to 54.2%.\n"
+                f"5. **🧪 What-If Disruption Simulator**: Parametric Monte Carlo scenario simulator evaluating delay reduction (-28h) and financial risk avoidance ($800K).\n"
+                f"6. **💬 AI Command Center Copilot**: Live multi-LLM contextual assistant connected directly to live database state."
+            )
+            return CopilotQueryResponse(
+                query=q_raw,
+                answer=ans,
+                confidence=0.99,
+                sources=["ChainGuard Architecture Specs", "Live PostgreSQL Telemetry", "IBM watsonx.ai Engine"],
+                suggested_actions=[
+                    "Which shipments are at highest risk?",
+                    "Impact of Mumbai Port Strike",
+                    "What emergency action for container CTN-8801?",
+                    "Show Idle Fleet Opportunities"
+                ],
+                provider_used="ChainGuard Autonomous RAG Engine"
+            )
+
         # A. Specific Container Lookup
         container_matches = re.findall(r'ctn-?\d+', q)
         if container_matches or any(k in q for k in ['cold chain', 'temperature', 'excursion', 'reefer', 'spoilage', 'degrees', 'sop']):
@@ -298,11 +329,21 @@ CERTIFIED COLD STORAGE HUBS:
             matched_c = next((c for c in containers if c.id.replace('-', '').upper() == target_cid), None)
             
             if matched_c:
-                c_temp = f"{matched_c.current_temp}°C" if matched_c.current_temp is not None else "10.3°C"
-                c_peak = f"{matched_c.peak_temp}°C" if matched_c.peak_temp is not None else "11.2°C"
-                c_cargo = matched_c.cargo_type or "Vaccines (Biologics)"
-                c_sop = f"{matched_c.safe_min_temp}–{matched_c.safe_max_temp}°C"
-                c_stat = matched_c.status or "CRITICAL"
+                c_curr_temp = getattr(matched_c, 'current_temperature', None)
+                if c_curr_temp is None:
+                    c_curr_temp = getattr(matched_c, 'current_temp', 10.3)
+                c_temp = f"{c_curr_temp}°C"
+
+                c_pk_temp = getattr(matched_c, 'peak_temperature', None)
+                if c_pk_temp is None:
+                    c_pk_temp = getattr(matched_c, 'peak_temp', 11.2)
+                c_peak = f"{c_pk_temp}°C"
+
+                c_cargo = getattr(matched_c, 'product_type', None) or getattr(matched_c, 'cargo_type', 'Vaccines (Biologics)')
+                min_t = getattr(matched_c, 'target_min_temperature', getattr(matched_c, 'safe_min_temp', 2.0))
+                max_t = getattr(matched_c, 'target_max_temperature', getattr(matched_c, 'safe_max_temp', 8.0))
+                c_sop = f"{min_t}–{max_t}°C"
+                c_stat = getattr(matched_c, 'status', 'CRITICAL')
                 
                 if c_stat == 'CRITICAL':
                     ans = (

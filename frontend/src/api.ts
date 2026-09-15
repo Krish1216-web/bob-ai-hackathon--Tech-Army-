@@ -164,16 +164,13 @@ export const api = {
   // Copilot Query (Direct Gemini / Multi-LLM / Dynamic RAG)
   async queryCopilot(query: string, options?: { api_key?: string; provider?: string; conversation_history?: any[] }) {
     const directKey = options?.api_key || localStorage.getItem('chainguard_gemini_key') || localStorage.getItem('chainguard_llm_key');
-    if (directKey) {
-      return await executeCopilotQuery(query, { ...options, api_key: directKey });
-    }
-
+    
     try {
       const backendRes = await fetchJson<any>('/copilot/query', {
         method: 'POST',
         body: JSON.stringify({
           query,
-          api_key: options?.api_key || undefined,
+          api_key: directKey || undefined,
           provider: options?.provider || 'auto',
           conversation_history: options?.conversation_history || []
         })
@@ -182,9 +179,9 @@ export const api = {
         return backendRes;
       }
     } catch {
-      // ignore
+      // Backend unavailable, fallback to client-side
     }
 
-    return await executeCopilotQuery(query, options);
+    return await executeCopilotQuery(query, { ...options, api_key: directKey || undefined });
   }
 };
