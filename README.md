@@ -193,7 +193,7 @@ Our solution provides an intelligent supply-chain control tower for monitoring d
 | Artifact | Link |
 |---|---|
 | 📹 Demo Video | [See demo/demo-video-link.txt](demo/demo-video-link.txt) |
-| 🌐 Live Demo | [See demo/live-demo-url.txt](demo/live-demo-url.txt) |
+| 🌐 Live Demo | [See demo/live-demo-url.txt]( https://frontend-theta-sandy-vt0dijop0s.vercel.app) |
 | 🖼️ Screenshots | [See demo/screenshots/](demo/screenshots/) |
 | 📊 Presentation | [See presentation/slides.pdf](presentation/) |
 
