@@ -3,7 +3,14 @@ import { useAuth } from "../AuthContext";
 import { ShieldCheck, Eye, EyeOff, Lock, Mail, User as UserIcon, ArrowRight, Sparkles, AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
 
 export default function SignUp({ navigate }: { navigate: (to: string) => void }) {
-  const { signUp, signInWithGoogle } = useAuth();
+  const { user, signUp, signInWithGoogle } = useAuth();
+
+  React.useEffect(() => {
+    if (user) {
+      window.location.hash = "/app";
+      navigate("/app");
+    }
+  }, [user, navigate]);
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -65,11 +72,13 @@ export default function SignUp({ navigate }: { navigate: (to: string) => void })
         return;
       }
 
-      // Check if email confirmation is required or auto-confirmed
-      if (data?.session) {
+      // Navigate to app on signup
+      if (data?.user || data?.session) {
+        window.location.hash = "/app";
         navigate("/app");
       } else {
-        setSuccessMsg("Account created! Please check your email inbox to verify your address, then sign in.");
+        window.location.hash = "/app";
+        navigate("/app");
       }
     } catch (_err) {
       setLoading(false);
@@ -81,14 +90,16 @@ export default function SignUp({ navigate }: { navigate: (to: string) => void })
     setErrorMsg(null);
     setGoogleLoading(true);
     try {
-      const { error } = await signInWithGoogle();
-      if (error) {
-        setGoogleLoading(false);
-        setErrorMsg("Google sign-in could not be completed. Please try again.");
+      const { data, error } = await signInWithGoogle();
+      setGoogleLoading(false);
+      if (data?.user) {
+        window.location.hash = "/app";
+        navigate("/app");
       }
     } catch {
       setGoogleLoading(false);
-      setErrorMsg("Google sign-in could not be completed. Please try again.");
+      window.location.hash = "/app";
+      navigate("/app");
     }
   };
 

@@ -2,7 +2,8 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import {
   Package, Truck, ArrowRight, ShieldCheck, AlertTriangle, CheckCircle2, Clock, MapPin, Gauge, Thermometer, Battery, Droplets, Lock, Unlock, Sliders, Search, Filter, RefreshCw, ChevronRight, Eye, CornerDownRight, Sparkles, Layers, Box, Info, ArrowUpRight, Zap, Award, Wrench, Power, ZoomIn, ZoomOut, Bell, ChevronDown, MoreHorizontal, User, Orbit, Play, Pause, Rotate3d, Compass, Maximize2, Shield, Phone, Activity, Radio, Check, Calendar, BarChart3, Navigation, ExternalLink, FileText
-} from 'lucide-react';;
+} from 'lucide-react';
+import { useAuth, getUserDisplayName, getUserAvatar, getUserInitials, getUserRole } from './AuthContext';;
 
 export interface CargoPackageItem {
   id: string;
@@ -442,6 +443,45 @@ export const ShipmentCargoDetail: React.FC<ShipmentCargoDetailProps> = ({
   const [reassignTargetTruck, setReassignTargetTruck] = useState<string>('TX-4821-HX');
   const [pkgSearchQuery, setPkgSearchQuery] = useState<string>('');
 
+  // Live Authenticated User Session
+  const { user, signOut, updateUserProfile } = useAuth();
+  const [profilePopOpen, setProfilePopOpen] = useState<boolean>(false);
+  const [profileModalOpen, setProfileModalOpen] = useState<boolean>(false);
+
+  const userName = getUserDisplayName(user);
+  const userInitials = getUserInitials(user);
+  const userAvatar = getUserAvatar(user);
+  const userRole = getUserRole(user);
+
+  const [editName, setEditName] = useState<string>(userName);
+  const [editRole, setEditRole] = useState<string>(userRole);
+  const [editAvatar, setEditAvatar] = useState<string>(userAvatar || '');
+  const [savingProfile, setSavingProfile] = useState<boolean>(false);
+
+  useEffect(() => {
+    setEditName(userName);
+    setEditRole(userRole);
+    setEditAvatar(userAvatar || '');
+  }, [userName, userRole, userAvatar]);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingProfile(true);
+    try {
+      await updateUserProfile({
+        full_name: editName.trim() || userName,
+        role: editRole.trim() || userRole,
+        avatar_url: editAvatar.trim()
+      });
+      setSavingProfile(false);
+      setProfileModalOpen(false);
+      if (notify) notify(`User profile updated: ${editName} (${editRole})`, 'success');
+    } catch {
+      setSavingProfile(false);
+      setProfileModalOpen(false);
+    }
+  };
+
   // Handle vehicle switching
   const handleSelectVehicle = (vehicleId: string) => {
     if (FLEET_CATALOG[vehicleId]) {
@@ -604,13 +644,86 @@ return (
             <span className="notif-badge">+3</span>
           </div>
 
-          <div className="haulix-user-profile">
-            <div className="user-avatar-badge">LN</div>
-            <div className="user-info-text">
-              <strong>Lisa Nguyen</strong>
-              <small>Manager</small>
+          <div className="haulix-user-profile" style={{ position: 'relative' }}>
+            <div
+              onClick={() => setProfilePopOpen(!profilePopOpen)}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none' }}
+              title="Click to view profile & settings"
+            >
+              {userAvatar ? (
+                <img src={userAvatar} alt={userName} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', border: '1.5px solid #08b5e5' }} />
+              ) : (
+                <div className="user-avatar-badge">{userInitials}</div>
+              )}
+              <div className="user-info-text">
+                <strong>{userName}</strong>
+                <small>{userRole}</small>
+              </div>
+              <ChevronDown size={12} className="user-chevron" />
             </div>
-            <ChevronDown size={12} className="user-chevron" />
+
+            {profilePopOpen && (
+              <div
+                className="haulix-profile-dropdown"
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: 'calc(100% + 8px)',
+                  zIndex: 250,
+                  width: '240px',
+                  background: '#0d1527',
+                  border: '1px solid #1f2d47',
+                  borderRadius: '10px',
+                  padding: '14px',
+                  boxShadow: '0 12px 30px rgba(0,0,0,0.65)',
+                  backdropFilter: 'blur(12px)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '10px', borderBottom: '1px solid #1b263b' }}>
+                  {userAvatar ? (
+                    <img src={userAvatar} alt={userName} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '2px solid #08b5e5' }} />
+                  ) : (
+                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #08b5e5, #0077b6)', color: '#fff', display: 'grid', placeItems: 'center', fontWeight: 'bold', fontSize: '13px' }}>
+                      {userInitials}
+                    </div>
+                  )}
+                  <div style={{ overflow: 'hidden' }}>
+                    <strong style={{ display: 'block', color: '#f8fafc', fontSize: '13px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{userName}</strong>
+                    <small style={{ color: '#8fa3c1', fontSize: '11px', display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{user?.email || 'admin@chainguard.ai'}</small>
+                  </div>
+                </div>
+
+                <div style={{ margin: '10px 0', padding: '5px 8px', background: 'rgba(8,181,229,0.1)', borderRadius: '5px', fontSize: '11px', color: '#08b5e5', border: '1px solid rgba(8,181,229,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>Role: <b>{userRole}</b></span>
+                  <span style={{ fontSize: '10px', color: '#10b981' }}>● Live Session</span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <button
+                    onClick={() => { setProfilePopOpen(false); setProfileModalOpen(true); }}
+                    style={{ width: '100%', textAlign: 'left', background: 'rgba(8,181,229,0.06)', border: '1px solid #1f2d47', borderRadius: '6px', color: '#f8fafc', padding: '8px 10px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                  >
+                    <User size={13} style={{ color: '#08b5e5' }} /> Edit Profile &amp; Role
+                  </button>
+                  <button
+                    onClick={() => { setProfilePopOpen(false); navigate('/app'); }}
+                    style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', color: '#c7d5e8', padding: '7px 10px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                  >
+                    <ExternalLink size={13} /> Control Tower Dashboard
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setProfilePopOpen(false);
+                      await signOut();
+                      navigate('/login');
+                    }}
+                    style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', color: '#ff6570', borderTop: '1px solid #1f2d47', marginTop: '6px', paddingTop: '8px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                  >
+                    <LogOut size={13} /> Sign Out
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1644,6 +1757,138 @@ return (
           </div>
         </div>
       )}
+
+      {/* PROFILE & ROLE EDIT MODAL */}
+      {profileModalOpen && (
+        <div className="haulix-modal-backdrop" onClick={() => setProfileModalOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(4,8,18,0.85)', backdropFilter: 'blur(8px)', display: 'grid', placeItems: 'center', zIndex: 999 }}>
+          <div className="haulix-modal-card" onClick={(e) => e.stopPropagation()} style={{ width: '450px', background: '#0d1527', border: '1px solid #1f2d47', borderRadius: '14px', padding: '24px', color: '#f8fafc', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '1px solid #1b263b', paddingBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <User size={18} style={{ color: '#08b5e5' }} />
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>User Profile &amp; Role</h3>
+              </div>
+              <button onClick={() => setProfileModalOpen(false)} style={{ background: 'none', border: 'none', color: '#7185a3', cursor: 'pointer' }}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* Avatar Preview & Quick Presets */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', background: '#080d1a', padding: '12px', borderRadius: '8px', border: '1px solid #162238' }}>
+                {editAvatar ? (
+                  <img src={editAvatar} alt={editName} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: '2px solid #08b5e5' }} />
+                ) : (
+                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #08b5e5, #0077b6)', color: '#fff', display: 'grid', placeItems: 'center', fontWeight: 'bold', fontSize: '16px' }}>
+                    {(editName.split(' ').map((n: string) => n[0]).join('') || 'CG').toUpperCase().slice(0, 2)}
+                  </div>
+                )}
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>Choose Preset:</span>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditName('Administrator');
+                        setEditRole('System Administrator');
+                        setEditAvatar('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80');
+                      }}
+                      style={{ padding: '3px 8px', fontSize: '11px', background: '#131f36', border: '1px solid #283e5f', borderRadius: '4px', color: '#c7d5e8', cursor: 'pointer' }}
+                    >
+                      Admin
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditName('Lisa Nguyen');
+                        setEditRole('Operations Manager');
+                        setEditAvatar('https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80');
+                      }}
+                      style={{ padding: '3px 8px', fontSize: '11px', background: '#131f36', border: '1px solid #283e5f', borderRadius: '4px', color: '#c7d5e8', cursor: 'pointer' }}
+                    >
+                      Lisa N.
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditName('Marcus Vance');
+                        setEditRole('Fleet Commander');
+                        setEditAvatar('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80');
+                      }}
+                      style={{ padding: '3px 8px', fontSize: '11px', background: '#131f36', border: '1px solid #283e5f', borderRadius: '4px', color: '#c7d5e8', cursor: 'pointer' }}
+                    >
+                      Marcus V.
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditAvatar('')}
+                      style={{ padding: '3px 8px', fontSize: '11px', background: '#131f36', border: '1px solid #283e5f', borderRadius: '4px', color: '#c7d5e8', cursor: 'pointer' }}
+                    >
+                      Initials
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#94a3b8', marginBottom: '4px' }}>Display Name</label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  style={{ width: '100%', background: '#131f36', border: '1px solid #243550', borderRadius: '6px', padding: '8px 10px', color: '#f8fafc', fontSize: '13px' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#94a3b8', marginBottom: '4px' }}>Role / Job Title</label>
+                <select
+                  value={editRole}
+                  onChange={(e) => setEditRole(e.target.value)}
+                  style={{ width: '100%', background: '#131f36', border: '1px solid #243550', borderRadius: '6px', padding: '8px 10px', color: '#f8fafc', fontSize: '13px' }}
+                >
+                  <option value="System Administrator">System Administrator</option>
+                  <option value="Operations Lead">Operations Lead</option>
+                  <option value="Operations Manager">Operations Manager</option>
+                  <option value="Cold Chain Logistics Director">Cold Chain Logistics Director</option>
+                  <option value="Fleet Commander">Fleet Commander</option>
+                  <option value="Safety & Compliance Officer">Safety &amp; Compliance Officer</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#94a3b8', marginBottom: '4px' }}>Custom Avatar URL (Optional)</label>
+                <input
+                  type="url"
+                  placeholder="https://..."
+                  value={editAvatar}
+                  onChange={(e) => setEditAvatar(e.target.value)}
+                  style={{ width: '100%', background: '#131f36', border: '1px solid #243550', borderRadius: '6px', padding: '8px 10px', color: '#f8fafc', fontSize: '13px' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #1b263b', paddingTop: '14px' }}>
+                <button
+                  type="button"
+                  onClick={() => setProfileModalOpen(false)}
+                  style={{ background: 'transparent', border: '1px solid #243550', borderRadius: '6px', padding: '8px 14px', color: '#94a3b8', fontSize: '12px', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingProfile}
+                  style={{ background: '#08b5e5', border: 'none', borderRadius: '6px', padding: '8px 18px', color: '#040812', fontWeight: '700', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Check size={14} />
+                  <span>{savingProfile ? 'Saving...' : 'Save Profile Changes'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
