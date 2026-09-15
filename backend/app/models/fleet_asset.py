@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, Float, Boolean, DateTime, Integer
-from datetime import datetime
+from datetime import datetime, timezone
 from app.database import Base
 
 class FleetAsset(Base):
@@ -19,4 +19,4 @@ class FleetAsset(Base):
     assigned_shipment_id = Column(String, nullable=True)
     match_score = Column(Integer, default=91)
     projected_gain = Column(String, default="+35.7%")
-    last_updated = Column(DateTime, default=datetime.utcnow)
+    last_updated = Column(DateTime, default=lambda: datetime.now(timezone.utc))

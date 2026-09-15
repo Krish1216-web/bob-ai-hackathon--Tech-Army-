@@ -4,7 +4,7 @@ Provides database access for containers, live sensor telemetry, cold storage hub
 """
 
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 from sqlalchemy.orm import Session
 from app.models.container import Container
@@ -33,7 +33,7 @@ class ColdChainRepository:
             for k, v in data.items():
                 if hasattr(existing, k) and v is not None:
                     setattr(existing, k, v)
-            existing.updated_at = datetime.utcnow()
+            existing.updated_at = datetime.now(timezone.utc)
             db.commit()
             db.refresh(existing)
             return existing
@@ -57,8 +57,8 @@ class ColdChainRepository:
             is_anomaly=bool(data.get("is_anomaly", False)),
             anomaly_layer=data.get("anomaly_layer", "NONE"),
             spoilage_risk_pct=float(data.get("spoilage_risk_pct", 5.0)),
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
         )
         db.add(container)
         db.flush()
@@ -78,7 +78,7 @@ class ColdChainRepository:
                 time_label=time_lbl,
                 excursion_duration_mins=0,
                 status="NORMAL",
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             )
             db.add(sr)
 
@@ -133,7 +133,7 @@ class ColdChainRepository:
             severity = "NORMAL"
             spoilage_risk = 5.0
 
-        time_lbl = data.get("time_label") or datetime.utcnow().strftime("%H:%M")
+        time_lbl = data.get("time_label") or datetime.now(timezone.utc).strftime("%H:%M")
         sr = SensorReading(
             container_id=cid,
             shipment_id=container.shipment_id if container else data.get("shipment_id"),
@@ -146,7 +146,7 @@ class ColdChainRepository:
             time_label=time_lbl,
             excursion_duration_mins=45 if severity == "CRITICAL" else 15 if severity == "MEDIUM" else 0,
             status=severity,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
         db.add(sr)
 
@@ -157,7 +157,7 @@ class ColdChainRepository:
             container.is_anomaly = anomaly_res.is_anomaly
             container.anomaly_layer = anomaly_res.layer
             container.spoilage_risk_pct = spoilage_risk
-            container.updated_at = datetime.utcnow()
+            container.updated_at = datetime.now(timezone.utc)
 
         # Create or update alert if excursion
         if is_excursion:
@@ -175,7 +175,7 @@ class ColdChainRepository:
                     duration_minutes=45 if severity == "CRITICAL" else 15,
                     recommended_action="Inspect reefer compressor unit and divert to nearest qualified cold hub.",
                     status="ACTIVE",
-                    created_at=datetime.utcnow()
+                    created_at=datetime.now(timezone.utc)
                 )
                 db.add(alert)
 
@@ -197,7 +197,7 @@ class ColdChainRepository:
         return ColdChainRepository.ingest_sensor_reading(db, {
             "container_id": container_id,
             "temperature_c": target_temp,
-            "time_label": datetime.utcnow().strftime("%H:%M")
+            "time_label": datetime.now(timezone.utc).strftime("%H:%M")
         })
 
     @staticmethod
@@ -233,12 +233,12 @@ class ColdChainRepository:
             container.is_anomaly = False
             container.anomaly_layer = "NONE"
             container.spoilage_risk_pct = 5.0
-            container.updated_at = datetime.utcnow()
+            container.updated_at = datetime.now(timezone.utc)
 
         alerts = db.query(ColdChainAlert).filter(ColdChainAlert.container_id == container_id).all()
         for a in alerts:
             a.status = "RESOLVED"
-            a.resolved_at = datetime.utcnow()
+            a.resolved_at = datetime.now(timezone.utc)
 
         db.commit()
         return True

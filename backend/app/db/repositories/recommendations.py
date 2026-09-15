@@ -4,7 +4,7 @@ Provides database access for AI recommendations and action audit logging.
 """
 
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from app.models.recommendation import Recommendation
 from app.models.recommendation_action import RecommendationAction
@@ -30,7 +30,7 @@ class RecommendationRepository:
             prev_state = {"actioned": rec.actioned, "status": rec.action_type}
             rec.actioned = True
             rec.action_type = "ACCEPTED" if accept else "REJECTED"
-            rec.actioned_at = datetime.utcnow()
+            rec.actioned_at = datetime.now(timezone.utc)
 
             # Record audit trail in recommendation_actions table
             action_log = RecommendationAction(

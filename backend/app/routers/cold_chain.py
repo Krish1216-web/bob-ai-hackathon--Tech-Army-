@@ -30,15 +30,15 @@ def list_containers(db: Session = Depends(get_db)):
 
 @router.post("/containers")
 def create_container(payload: ContainerCreate, db: Session = Depends(get_db)):
-    return ColdChainService.create_new_container(db, payload.dict())
+    return ColdChainService.create_new_container(db, payload.model_dump())
 
 @router.post("/bulk-import")
 def bulk_import_containers(payload: ContainerBulkImport, db: Session = Depends(get_db)):
-    return ColdChainService.bulk_import(db, [c.dict() for c in payload.containers])
+    return ColdChainService.bulk_import(db, [c.model_dump() for c in payload.containers])
 
 @router.post("/telemetry")
 def ingest_telemetry(payload: TelemetryIngest, db: Session = Depends(get_db)):
-    return ColdChainService.ingest_telemetry(db, payload.dict())
+    return ColdChainService.ingest_telemetry(db, payload.model_dump())
 
 @router.post("/simulate-excursion")
 def simulate_excursion(payload: ExcursionSimulation, db: Session = Depends(get_db)):

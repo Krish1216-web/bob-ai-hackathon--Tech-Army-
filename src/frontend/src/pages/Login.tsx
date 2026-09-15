@@ -46,7 +46,7 @@ export default function Login({ navigate }: { navigate: (to: string) => void }) 
         window.location.hash = "/app";
         navigate("/app");
       }
-    } catch (err: any) {
+    } catch (_err) {
       setLoading(false);
       setErrorMsg("Unable to reach the authentication service. Please try again.");
     }

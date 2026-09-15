@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 from app.models.container import Container
@@ -631,7 +631,7 @@ class ColdChainService:
         spoilage_prob = calculate_spoilage_probability(excess_temp, duration_mins, 18.0, product) if is_excursion else 0.002
         economic_eval = evaluate_economic_diversion(cargo_val, spoilage_prob, 14.2, "SAFETY")
 
-        cert_payload = f"{cid}-{shipment_id}-{product}-{peak_temp}-{temp}-{status}-{datetime.utcnow().strftime('%Y-%m-%d')}"
+        cert_payload = f"{cid}-{shipment_id}-{product}-{peak_temp}-{temp}-{status}-{datetime.now(timezone.utc).strftime('%Y-%m-%d')}"
         cert_hash = hashlib.sha256(cert_payload.encode()).hexdigest().upper()
 
         # Build realistic distinct sensor time series matching the specific range
@@ -647,7 +647,7 @@ class ColdChainService:
         return {
             "certificate_id": f"WHO-GDP-2026-{cid}-{cert_hash[:8]}",
             "verification_hash_sha256": cert_hash,
-            "generated_at": datetime.utcnow().isoformat() + "Z",
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "regulatory_standards": [
                 "WHO Technical Report Series No. 961, 2011 (Annex 9 - Good Distribution Practice for Pharmaceutical Products)",
                 "US FDA Title 21 CFR Part 11 (Electronic Records & Electronic Signatures Compliance)",

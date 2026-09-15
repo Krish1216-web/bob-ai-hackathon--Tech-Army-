@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, Float, Boolean, DateTime, Integer, ForeignKey
-from datetime import datetime
+from datetime import datetime, timezone
 from app.database import Base
 
 class Shipment(Base):
@@ -22,5 +22,5 @@ class Shipment(Base):
     priority = Column(String, default="CRITICAL") # CRITICAL, HIGH, MEDIUM, NORMAL
     is_cold_chain = Column(Boolean, default=True)
     product_profile_id = Column(String, nullable=True) # VACCINES_SOP
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

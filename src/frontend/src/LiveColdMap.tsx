@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
-import { Maximize2, Crosshair, RefreshCw, Warehouse, Truck, AlertTriangle, Globe, Map } from 'lucide-react';
+import { Maximize2, Crosshair, RefreshCw, Warehouse, Truck, AlertTriangle, Globe } from 'lucide-react';
 
 export interface ColdContainerMapItem {
   id: string;
@@ -237,51 +237,62 @@ export const LiveColdMap: React.FC<LiveColdMapProps> = ({
       }
     });
 
-    // 2. Draw Cold Storage Hubs
+    // 2. Draw Cold Storage Hubs & Geofence Rings
     hubs.forEach((h) => {
       const isAvailable = h.status === 'OPERATIONAL' && h.available_tons > 20;
-      const hubColor = isAvailable ? '#3B82F6' : '#64748B';
+      const hubColor = isAvailable ? '#38BDF8' : '#64748B';
+
+      // Hub Geofence Radius Ring (35km buffer)
+      L.circle([h.lat, h.lng], {
+        radius: 35000,
+        color: isAvailable ? '#38BDF8' : '#64748B',
+        weight: 1,
+        dashArray: '4, 4',
+        fillOpacity: 0.06,
+        fillColor: isAvailable ? '#08B5E5' : '#64748B',
+      }).addTo(layerGroup);
 
       const hubIcon = L.divIcon({
         className: 'custom-hub-icon',
         html: `
           <div style="
-            width: 22px;
-            height: 22px;
-            background: #0d1e38;
+            width: 24px;
+            height: 24px;
+            background: #060e1d;
             border: 2px solid ${hubColor};
-            border-radius: 4px;
+            border-radius: 5px;
             transform: rotate(45deg);
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+            box-shadow: 0 0 14px rgba(56, 189, 248, 0.45);
             cursor: pointer;
+            transition: transform 0.2s;
           ">
             <div style="
               width: 8px;
               height: 8px;
               background: ${hubColor};
-              border-radius: 1px;
+              border-radius: 2px;
             "></div>
           </div>
         `,
-        iconSize: [22, 22],
-        iconAnchor: [11, 11],
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
       });
 
       const hubMarker = L.marker([h.lat, h.lng], { icon: hubIcon });
       hubMarker.bindPopup(`
-        <div style="min-width: 210px; font-family: inherit;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-            <b style="font-size: 13px; color: #60A5FA;">${h.name}</b>
+        <div style="min-width: 220px; font-family: inherit; color: #f1f5f9; background: #080d1a; padding: 2px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; border-bottom: 1px solid #1e293b; padding-bottom: 4px;">
+            <b style="font-size: 13px; color: #38BDF8; display: flex; align-items: center; gap: 4px;">🏢 ${h.name}</b>
           </div>
-          <div style="color: #94A3B8; font-size: 11px; margin-bottom: 6px;">📍 ${h.location}</div>
-          <div style="background: #17253b; padding: 6px 8px; border-radius: 6px; font-size: 10px; display: grid; gap: 3px;">
-            <div>📦 Available Capacity: <b style="color: #10B981;">${h.available_tons} Tons</b> / ${h.capacity_tons} T</div>
-            <div>📊 Facility Occupancy: <b>${h.occupied_pct}%</b></div>
-            <div>🌡 Temp Zones: <b style="color: #38BDF8;">${(h.temp_zones || []).join(', ')}</b></div>
-            <div>⚡ Status: <b style="color: ${isAvailable ? '#10B981' : '#EF4444'};">${h.status}</b></div>
+          <div style="color: #94A3B8; font-size: 11px; margin-bottom: 6px;">📍 ${h.location} · 35km Geofence</div>
+          <div style="background: #0f172a; padding: 8px; border-radius: 6px; font-size: 10.5px; display: grid; gap: 4px; border: 1px solid #1e293b;">
+            <div style="display: flex; justify-content: space-between;"><span>📦 Available Capacity:</span> <b style="color: #10B981;">${h.available_tons} Tons</b></div>
+            <div style="display: flex; justify-content: space-between;"><span>📊 Occupancy:</span> <b>${h.occupied_pct}%</b> (${h.capacity_tons - h.available_tons}/${h.capacity_tons} T)</div>
+            <div style="display: flex; justify-content: space-between;"><span>🌡 Validated Zones:</span> <b style="color: #38BDF8;">${(h.temp_zones || []).join(', ')}</b></div>
+            <div style="display: flex; justify-content: space-between;"><span>⚡ Facility Health:</span> <b style="color: ${isAvailable ? '#10B981' : '#EF4444'};">${h.status}</b></div>
           </div>
         </div>
       `);
@@ -525,3 +536,4 @@ export const LiveColdMap: React.FC<LiveColdMapProps> = ({
     </div>
   );
 };
+

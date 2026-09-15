@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime
-from datetime import datetime
+from datetime import datetime, timezone
 from app.database import Base
 
 class SensorReading(Base):
@@ -8,7 +8,7 @@ class SensorReading(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     shipment_id = Column(String, index=True) # e.g. SHP-1042
     container_id = Column(String, default="CTN-8801") # CTN-8801
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     time_label = Column(String, default="14:00")
     temperature_c = Column(Float, nullable=False) # 10.3
     humidity_pct = Column(Float, default=65.0)

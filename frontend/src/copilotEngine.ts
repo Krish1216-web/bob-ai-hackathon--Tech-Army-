@@ -1,4 +1,4 @@
-import { shipments, disruptions, opportunities, type Shipment } from './data';
+import { shipments, disruptions, opportunities } from './data';
 
 export interface CopilotGenerationResult {
   query: string;
@@ -51,6 +51,7 @@ async function callGeminiDirect(query: string, apiKey: string, contextPrompt: st
 }
 
 // Groq Live API Caller
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function callGroqDirect(query: string, apiKey: string, contextPrompt: string): Promise<string | null> {
   try {
     const url = 'https://api.groq.com/openai/v1/chat/completions';
@@ -79,7 +80,8 @@ async function callGroqDirect(query: string, apiKey: string, contextPrompt: stri
   }
 }
 
-// OpenAI Direct Caller
+// OpenAI Direct Caller (reserved for future direct integration)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function callOpenAIDirect(query: string, apiKey: string, contextPrompt: string): Promise<string | null> {
   try {
     const url = 'https://api.openai.com/v1/chat/completions';
@@ -109,7 +111,7 @@ async function callOpenAIDirect(query: string, apiKey: string, contextPrompt: st
 }
 
 // Dynamic Generative Local Synthesizer
-export function generateDynamicRAGAnswer(query: string, conversationHistory: any[] = []): CopilotGenerationResult {
+export function generateDynamicRAGAnswer(query: string, _conversationHistory: any[] = []): CopilotGenerationResult {
   const q = query.trim();
   const qLower = q.toLowerCase();
 
@@ -134,7 +136,7 @@ export function generateDynamicRAGAnswer(query: string, conversationHistory: any
   );
 
   let answer = '';
-  let sources = ['Live PostgreSQL Telemetry', 'ChainGuard Autonomous RAG Engine'];
+  const sources = ['Live PostgreSQL Telemetry', 'ChainGuard Autonomous RAG Engine'];
   let actions: string[] = [];
   let confidence = Math.floor(95 + Math.random() * 4);
 
@@ -333,8 +335,9 @@ export async function executeCopilotQuery(
     conversation_history?: any[];
   }
 ): Promise<CopilotGenerationResult> {
-  const provider = options?.provider || 'auto';
-  const apiKey = 
+  const _provider = options?.provider || 'auto';
+  void _provider; // reserved for future multi-provider routing
+  const apiKey =
     options?.api_key || 
     localStorage.getItem('chainguard_gemini_key') || 
     localStorage.getItem('chainguard_llm_key') || 

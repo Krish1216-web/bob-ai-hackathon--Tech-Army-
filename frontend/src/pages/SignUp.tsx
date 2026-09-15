@@ -71,7 +71,7 @@ export default function SignUp({ navigate }: { navigate: (to: string) => void })
       } else {
         setSuccessMsg("Account created! Please check your email inbox to verify your address, then sign in.");
       }
-    } catch (err: any) {
+    } catch (_err) {
       setLoading(false);
       setErrorMsg("Unable to reach the authentication service. Please try again.");
     }

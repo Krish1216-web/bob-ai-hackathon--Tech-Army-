@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState, useRef, useCallback, type ReactNode } from 'react';
+import React, { Component, useEffect, useMemo, useState, useRef, type ReactNode } from 'react';
 import {
   AlertTriangle, ArrowRight, BarChart3, Bell, Check, CheckCircle2, ChevronDown, ChevronLeft,
   ChevronRight, CircleDollarSign, Clock3, Container, Download, ExternalLink, Filter,
   FlaskConical, Gauge, LayoutDashboard, MapPin, Package, Search, Send, Settings2, ShieldCheck,
   Ship, Sparkles, Thermometer, Truck, X, XCircle, Zap, Warehouse, ShieldAlert, Snowflake, Activity,
   Plus, RefreshCw, Sliders, FileText, Printer, CheckCheck, Award, LogOut,
+  Play, Pause, RotateCcw, FastForward, Battery, Droplets, Lock, Unlock, Cpu, Radio,
   type LucideIcon,
 } from 'lucide-react';
 import { AuthProvider, useAuth } from './AuthContext';
@@ -12,15 +13,468 @@ import Landing from './Landing';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import AuthCallback from './pages/AuthCallback';
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, ReferenceLine, ReferenceArea } from 'recharts';
 import { actions as defaultActions, disruptions as defaultDisruptions, opportunities as defaultOpportunities, shipments as defaultShipments, type AIAction, type Severity, type Shipment } from './data';
 import { api } from './api';
 import { LiveColdMap, type ColdContainerMapItem, type ColdHubMapItem, type ColdRouteMapItem } from './LiveColdMap';
-import { MapboxControlTower3D } from './MapboxControlTower3D';
+import { ShipmentCargoDetail } from './ShipmentCargoDetail';
+// MapboxControlTower3D reserved for future 3D map integration
+// import { MapboxControlTower3D } from './MapboxControlTower3D';
 
 const cyan = '#08B5E5';
 const defaultTrendData = [{ t: '00:00', v: 68 }, { t: '02:00', v: 67.8 }, { t: '04:00', v: 66.5 }, { t: '06:00', v: 67 }, { t: '08:00', v: 69.2 }, { t: '10:00', v: 70.8 }, { t: '12:00', v: 72 }, { t: '14:00', v: 71.8 }, { t: '16:00', v: 73 }, { t: '18:00', v: 72.5 }, { t: '20:00', v: 71.2 }, { t: '22:00', v: 70.8 }];
 const defaultAssetData = [{ name: 'Trucks', value: 76 }, { name: 'Containers', value: 73 }, { name: 'Vessels', value: 64 }];
+
+
+export interface JudgeDemoStep {
+  step: number;
+  phase: 'MONITOR' | 'DETECT' | 'PREDICT' | 'DECIDE' | 'ACT' | 'RECOVER';
+  phaseColor: string;
+  title: string;
+  sub: string;
+  temp: number;
+  peakTemp: number;
+  safeMin: number;
+  safeMax: number;
+  humidity: number;
+  battery: number;
+  door: 'CLOSED' | 'OPEN';
+  cooling: 'ACTIVE' | 'WARNING' | 'FAILED' | 'REENGAGED';
+  risk: number;
+  status: 'NORMAL' | 'MEDIUM' | 'CRITICAL';
+  anomalyLayer: string;
+  lat: number;
+  lng: number;
+  locationName: string;
+  diversionPoints: [number, number][] | null;
+  recommendedAction: string;
+  aiExplanation: string;
+  operatorActionBtn?: string;
+}
+
+export const JUDGE_DEMO_STEPS: JudgeDemoStep[] = [
+  {
+    step: 1,
+    phase: 'MONITOR',
+    phaseColor: '#08B5E5',
+    title: 'Nominal Operations & Real-Time Monitoring',
+    sub: 'Active IoT reefer telemetry streaming nominally',
+    temp: 4.1,
+    peakTemp: 4.4,
+    safeMin: 2.0,
+    safeMax: 8.0,
+    humidity: 52,
+    battery: 98,
+    door: 'CLOSED',
+    cooling: 'ACTIVE',
+    risk: 4,
+    status: 'NORMAL',
+    anomalyLayer: 'NONE (L1-L4 Nominals Verified)',
+    lat: 18.9401,
+    lng: 72.8347,
+    locationName: 'Mumbai JNPT Port Terminal',
+    diversionPoints: null,
+    recommendedAction: 'Maintain scheduled corridor transit to Frankfurt via Mundra Port.',
+    aiExplanation: 'Reefer CTN-8801 carrying 120,000 Pfizer COVID-19 Vaccine Vials ($1,250,000) is at 4.1°C (SOP 2.0°C–8.0°C). All sensor filters (L1 Physical Bounds, L2 Rate of Change, L3 Z-Score, L4 Stuck Sensor) report healthy baselines.',
+  },
+  {
+    step: 2,
+    phase: 'DETECT',
+    phaseColor: '#F59E0B',
+    title: 'Thermal Ramp Initiated (Early Warning Signal)',
+    sub: 'Compressor output drops as ambient temperature reaches 38°C',
+    temp: 6.8,
+    peakTemp: 6.8,
+    safeMin: 2.0,
+    safeMax: 8.0,
+    humidity: 56,
+    battery: 95,
+    door: 'CLOSED',
+    cooling: 'WARNING',
+    risk: 28,
+    status: 'NORMAL',
+    anomalyLayer: 'L2_RATE (Thermal Ramp +0.9°C / 15 min)',
+    lat: 18.8900,
+    lng: 73.0100,
+    locationName: 'Panvel Western Expressway',
+    diversionPoints: null,
+    recommendedAction: 'Pre-alert dispatch desk; monitor auxiliary alternator power.',
+    aiExplanation: 'Internal temperature rises to 6.8°C at +0.9°C/15m. L2 Rate of Change filter flags early warning trend prior to physical threshold breach.',
+  },
+  {
+    step: 3,
+    phase: 'DETECT',
+    phaseColor: '#F59E0B',
+    title: 'Multi-Layer AI Anomaly Detected',
+    sub: 'ML Sensor Fusion confirms true anomaly (not a false positive)',
+    temp: 7.9,
+    peakTemp: 7.9,
+    safeMin: 2.0,
+    safeMax: 8.0,
+    humidity: 59,
+    battery: 93,
+    door: 'CLOSED',
+    cooling: 'FAILED',
+    risk: 58,
+    status: 'MEDIUM',
+    anomalyLayer: 'L2_RATE + L3_Z_SCORE (2.1σ Statistical Breach)',
+    lat: 18.8200,
+    lng: 73.1800,
+    locationName: 'Khopoli Ghats Sector',
+    diversionPoints: null,
+    recommendedAction: 'AI preparing emergency hub diversion candidates.',
+    aiExplanation: 'ML Anomaly engine flags 2.1σ departure from historical thermal baselines. L4 check confirms sensor stream is live and responsive. Recommends proactive intervention.',
+  },
+  {
+    step: 4,
+    phase: 'PREDICT',
+    phaseColor: '#EF4444',
+    title: 'SOP Upper Bound Breach & Spoilage Prediction',
+    sub: 'Sigmoid kinetic degradation modeling activated',
+    temp: 8.6,
+    peakTemp: 8.6,
+    safeMin: 2.0,
+    safeMax: 8.0,
+    humidity: 63,
+    battery: 91,
+    door: 'CLOSED',
+    cooling: 'FAILED',
+    risk: 76,
+    status: 'CRITICAL',
+    anomalyLayer: 'L1_BOUNDS (SOP Upper Bound 8.0°C Breached)',
+    lat: 18.7500,
+    lng: 73.3500,
+    locationName: 'Lonavala Corridor Mile 42',
+    diversionPoints: null,
+    recommendedAction: 'Divert to qualified cold storage hub before 52-min kinetic spoilage deadline.',
+    aiExplanation: 'Temperature breaches 8.0°C upper boundary. Sigmoid spoilage kinetic model calculates 52 minutes of thermal tolerance remaining before irreversible denaturation of biologics ($1.25M exposure).',
+  },
+  {
+    step: 5,
+    phase: 'PREDICT',
+    phaseColor: '#EF4444',
+    title: 'Critical Excursion Alert Broadcasted',
+    sub: 'Automated high-priority alert across Control Tower and SMS',
+    temp: 10.3,
+    peakTemp: 11.2,
+    safeMin: 2.0,
+    safeMax: 8.0,
+    humidity: 67,
+    battery: 89,
+    door: 'CLOSED',
+    cooling: 'FAILED',
+    risk: 94,
+    status: 'CRITICAL',
+    anomalyLayer: 'L1_BOUNDS + CRITICAL_EXCURSION (24 min elapsed)',
+    lat: 18.6800,
+    lng: 73.5200,
+    locationName: 'Talegaon Expressway',
+    diversionPoints: null,
+    recommendedAction: 'Immediate automated mitigation dispatch required.',
+    aiExplanation: 'Temperature reaches 10.3°C (Peak 11.2°C). High severity alert dispatched to Fleet Ops, Dispatcher, and Quality Assurance leads.',
+  },
+  {
+    step: 6,
+    phase: 'DECIDE',
+    phaseColor: '#8B5CF6',
+    title: 'AI Multi-Route & Hub Diagnostic Evaluation',
+    sub: 'Multi-objective Haversine routing & capacity solver',
+    temp: 10.3,
+    peakTemp: 11.2,
+    safeMin: 2.0,
+    safeMax: 8.0,
+    humidity: 67,
+    battery: 89,
+    door: 'CLOSED',
+    cooling: 'FAILED',
+    risk: 94,
+    status: 'CRITICAL',
+    anomalyLayer: 'DECISION_SOLVER (Multi-Facility Tradeoff)',
+    lat: 18.6800,
+    lng: 73.5200,
+    locationName: 'Talegaon Expressway',
+    diversionPoints: [[18.6800, 73.5200], [18.5204, 73.8567]],
+    recommendedAction: 'Evaluate Route A (Continue: $1.25M loss) vs Route B (Pune Hub: $1.21M net savings).',
+    aiExplanation: 'Decision engine evaluates candidate responses: 1) Continue route to Frankfurt: 99% probability of total cargo spoilage; 2) Divert to Pune Pharma Cold Hub (74 km, 58 min ETA, 140 Tons available capacity): 96% cargo preservation, $1,218,000 net savings; 3) Emergency auxiliary chiller reboot pulse.',
+  },
+  {
+    step: 7,
+    phase: 'DECIDE',
+    phaseColor: '#8B5CF6',
+    title: 'AI Prescriptive Recommendation Formulated',
+    sub: 'Optimized action generated with 96.4% confidence rating',
+    temp: 10.3,
+    peakTemp: 11.2,
+    safeMin: 2.0,
+    safeMax: 8.0,
+    humidity: 67,
+    battery: 89,
+    door: 'CLOSED',
+    cooling: 'FAILED',
+    risk: 94,
+    status: 'CRITICAL',
+    anomalyLayer: 'PRESCRIBED: DIVERT_PUNE_HUB + REEFER_RESET',
+    lat: 18.6800,
+    lng: 73.5200,
+    locationName: 'Talegaon Expressway',
+    diversionPoints: [[18.6800, 73.5200], [18.5204, 73.8567]],
+    recommendedAction: 'Authorize emergency diversion to Pune Pharma Cold Hub & transmit reefer reset pulse.',
+    aiExplanation: 'watsonx.ai prescriptive engine outputs single optimal policy: Divert vehicle TRK-204 to Pune Pharma Cold Hub while executing telematics reboot pulse to reset reefer compressor.',
+  },
+  {
+    step: 8,
+    phase: 'ACT',
+    phaseColor: '#168BFF',
+    title: 'Operator Authorization & Dispatch Command',
+    sub: '1-click execution: Turn-by-turn routing + IoT compressor reset',
+    temp: 10.3,
+    peakTemp: 11.2,
+    safeMin: 2.0,
+    safeMax: 8.0,
+    humidity: 67,
+    battery: 89,
+    door: 'CLOSED',
+    cooling: 'FAILED',
+    risk: 94,
+    status: 'CRITICAL',
+    anomalyLayer: 'OPERATOR_AUTHORIZED_DISPATCH',
+    lat: 18.6800,
+    lng: 73.5200,
+    locationName: 'Talegaon Expressway',
+    diversionPoints: [[18.6800, 73.5200], [18.5204, 73.8567]],
+    recommendedAction: 'Execute emergency diversion authorization.',
+    aiExplanation: 'Operator clicks "Authorize Emergency Diversion & Reefer Reset". Digital command dispatched to driver mobile HUD and IoT reefer ECU.',
+    operatorActionBtn: '⚡ Authorize Emergency Diversion & Reefer Reset',
+  },
+  {
+    step: 9,
+    phase: 'ACT',
+    phaseColor: '#168BFF',
+    title: 'Reefer Chiller Recovery & Transit Redirect',
+    sub: 'Auxiliary cooling restarted; temperature rapidly descending',
+    temp: 7.2,
+    peakTemp: 11.2,
+    safeMin: 2.0,
+    safeMax: 8.0,
+    humidity: 58,
+    battery: 90,
+    door: 'CLOSED',
+    cooling: 'REENGAGED',
+    risk: 42,
+    status: 'MEDIUM',
+    anomalyLayer: 'COOLING_RECOVERY_ENGAGED',
+    lat: 18.6000,
+    lng: 73.6800,
+    locationName: 'Dehu Road Diverted Route',
+    diversionPoints: [[18.6000, 73.6800], [18.5204, 73.8567]],
+    recommendedAction: 'Maintain active cooling boost until docking at Pune Pharma Cold Hub.',
+    aiExplanation: 'Reefer compressor successfully restarts via remote telematic command. Temperature curve reverses downwards: 10.3°C → 7.2°C. Vehicle safely rerouted towards Pune Hub.',
+  },
+  {
+    step: 10,
+    phase: 'RECOVER',
+    phaseColor: '#10B981',
+    title: 'Thermal Window Re-Stabilized (4.2°C)',
+    sub: 'Cargo returned to nominal 2.0°C–8.0°C specification',
+    temp: 4.2,
+    peakTemp: 11.2,
+    safeMin: 2.0,
+    safeMax: 8.0,
+    humidity: 53,
+    battery: 93,
+    door: 'CLOSED',
+    cooling: 'ACTIVE',
+    risk: 8,
+    status: 'NORMAL',
+    anomalyLayer: 'THERMAL_RESTABILIZED_SOP',
+    lat: 18.5204,
+    lng: 73.8567,
+    locationName: 'Pune Pharma Cold Hub Gate',
+    diversionPoints: null,
+    recommendedAction: 'Complete dock transfer and generate regulatory compliance audit package.',
+    aiExplanation: 'Internal temperature stabilizes at 4.2°C. Cumulative excursion time stopped at 36 minutes (safe limit: 52 min). 100% cargo viability verified with zero potency degradation.',
+  },
+  {
+    step: 11,
+    phase: 'RECOVER',
+    phaseColor: '#10B981',
+    title: 'Closed-Loop Complete & WHO GDP Audit Signed',
+    sub: '$1,250,000 biopharma cargo preserved · Full compliance certified',
+    temp: 4.1,
+    peakTemp: 11.2,
+    safeMin: 2.0,
+    safeMax: 8.0,
+    humidity: 52,
+    battery: 96,
+    door: 'CLOSED',
+    cooling: 'ACTIVE',
+    risk: 4,
+    status: 'NORMAL',
+    anomalyLayer: 'CLOSED_LOOP_CERTIFIED',
+    lat: 18.5204,
+    lng: 73.8567,
+    locationName: 'Pune Pharma Cold Hub Facility',
+    diversionPoints: null,
+    recommendedAction: 'Review and export regulatory audit compliance certificate.',
+    aiExplanation: 'Full closed-loop operations cycle achieved: Monitor → Detect → Predict → Decide → Act → Recover. $1,250,000 vaccine shipment 100% saved. WHO GDP Annex 9 & US FDA 21 CFR Part 11 compliant digital certificate generated.',
+    operatorActionBtn: '🏆 View Certified WHO/FDA Audit Package',
+  },
+];
+
+export function JudgeDemoBar({
+  currentStep,
+  onStepSelect,
+  isPlaying,
+  onTogglePlay,
+  onReset,
+  onAdvance,
+  onBack,
+  onTriggerAction,
+  onOpenAudit,
+}: {
+  currentStep: number;
+  onStepSelect: (step: number) => void;
+  isPlaying: boolean;
+  onTogglePlay: () => void;
+  onReset: () => void;
+  onAdvance: () => void;
+  onBack: () => void;
+  onTriggerAction?: () => void;
+  onOpenAudit?: () => void;
+}) {
+  const stepData = JUDGE_DEMO_STEPS[currentStep - 1] || JUDGE_DEMO_STEPS[0];
+
+  return (
+    <div className="judge-demo-bar">
+      {/* Top Banner Row */}
+      <div className="judge-demo-header">
+        <div className="judge-demo-title-area">
+          <span className="judge-sparkle-icon">
+            <Sparkles size={16} />
+          </span>
+          <div>
+            <div className="judge-headline">
+              <strong>JUDGE DEMO MODE</strong>
+              <span className="judge-phase-badge" style={{ borderColor: stepData.phaseColor, color: stepData.phaseColor, background: `${stepData.phaseColor}15` }}>
+                {stepData.phase} PHASE (STEP {currentStep}/11)
+              </span>
+            </div>
+            <p className="judge-subline">Closed-Loop Cold-Chain Intelligence: <b>Monitor → Detect → Predict → Decide → Act → Recover</b></p>
+          </div>
+        </div>
+
+        {/* Stepper Play Controls */}
+        <div className="judge-controls">
+          <button className="judge-ctrl-btn" onClick={onReset} title="Reset to Step 1 (Normal Operations)">
+            <RotateCcw size={13} />
+            <span>Reset</span>
+          </button>
+          <button className="judge-ctrl-btn" onClick={onBack} disabled={currentStep === 1} title="Previous Step">
+            <ChevronLeft size={14} />
+            <span>Prev</span>
+          </button>
+          <button
+            className={`judge-play-btn ${isPlaying ? 'playing' : ''}`}
+            onClick={onTogglePlay}
+            title={isPlaying ? 'Pause Auto-Play' : 'Auto-Play 11-Step Walkthrough (3.5s per step)'}
+          >
+            {isPlaying ? <Pause size={14} /> : <Play size={14} />}
+            <span>{isPlaying ? 'Pause Auto-Play' : '▶ Auto-Play (3s)'}</span>
+          </button>
+          <button className="judge-ctrl-btn next-primary" onClick={onAdvance} disabled={currentStep === 11} title="Next Step">
+            <span>Next</span>
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      </div>
+
+      {/* Step Pills Track */}
+      <div className="judge-step-pills-track">
+        {JUDGE_DEMO_STEPS.map((s) => {
+          const isCurrent = s.step === currentStep;
+          const isPassed = s.step < currentStep;
+          return (
+            <button
+              key={s.step}
+              className={`judge-step-pill ${isCurrent ? 'current' : ''} ${isPassed ? 'passed' : ''}`}
+              onClick={() => onStepSelect(s.step)}
+              title={`${s.phase}: ${s.title}`}
+            >
+              <span className="pill-num">{s.step}</span>
+              <span className="pill-phase">{s.phase}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Step Card Content */}
+      <div className="judge-step-card">
+        <div className="judge-step-left">
+          <div className="judge-step-title-row">
+            <h4>
+              <span style={{ color: stepData.phaseColor }}>Step {stepData.step}:</span> {stepData.title}
+            </h4>
+            <span className={`judge-status-chip ${stepData.status.toLowerCase()}`}>
+              {stepData.status === 'CRITICAL' ? '🚨 CRITICAL' : stepData.status === 'MEDIUM' ? '🟠 WARNING' : '🟢 NORMAL'} ({stepData.temp}°C)
+            </span>
+          </div>
+          <p className="judge-step-sub">{stepData.sub}</p>
+          <p className="judge-step-explanation">{stepData.aiExplanation}</p>
+
+          <div className="judge-metric-strip">
+            <div className="judge-metric-item">
+              <small>LIVE REEFER TEMP</small>
+              <strong style={{ color: stepData.temp > 8.0 ? '#EF4444' : stepData.temp > 6.0 ? '#F59E0B' : '#10B981' }}>
+                {stepData.temp}°C <span style={{ fontSize: 10, color: '#7185a3' }}>(SOP 2–8°C)</span>
+              </strong>
+            </div>
+            <div className="judge-metric-item">
+              <small>SPOILAGE RISK</small>
+              <strong style={{ color: stepData.risk > 70 ? '#EF4444' : stepData.risk > 30 ? '#F59E0B' : '#10B981' }}>
+                {stepData.risk}%
+              </strong>
+            </div>
+            <div className="judge-metric-item">
+              <small>ANOMALY LAYER</small>
+              <strong style={{ fontSize: 11, color: '#38BDF8' }}>{stepData.anomalyLayer}</strong>
+            </div>
+            <div className="judge-metric-item">
+              <small>CURRENT WAYPOINT</small>
+              <strong style={{ fontSize: 11 }}>{stepData.locationName}</strong>
+            </div>
+          </div>
+        </div>
+
+        {/* Action button if actionable */}
+        <div className="judge-step-right">
+          {currentStep === 8 && onTriggerAction && (
+            <button className="judge-action-cta pulse-cta" onClick={onTriggerAction}>
+              <Zap size={14} />
+              <span>⚡ Authorize Diversion &amp; Reset</span>
+            </button>
+          )}
+          {currentStep === 11 && onOpenAudit && (
+            <button className="judge-action-cta cert-cta" onClick={onOpenAudit}>
+              <Award size={14} />
+              <span>🏆 View WHO/FDA Audit Certificate</span>
+            </button>
+          )}
+          {currentStep !== 8 && currentStep !== 11 && (
+            <div className="judge-action-preview">
+              <small>PRESCRIPTIVE ACTION</small>
+              <p>{stepData.recommendedAction}</p>
+              {currentStep < 11 && (
+                <button className="judge-step-forward-btn" onClick={onAdvance}>
+                  Advance Step ({currentStep + 1}/11) <ArrowRight size={12} />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const routePages: Record<string, { title: string; subtitle: string }> = {
   '/': { title: 'Supply Chain Control Tower', subtitle: 'Real-time visibility, disruption intelligence and AI-powered response.' },
@@ -497,48 +951,352 @@ function Panel({ children, className = '', style }: { children: ReactNode; class
   return <section className={`panel ${className}`} style={style}>{children}</section>;
 }
 
-function ControlTower({ navigate, fleetUtilisation, pendingActions, disruptions, kpis }: { navigate: (to: string) => void; fleetUtilisation: string; pendingActions: number; disruptions: any[]; kpis: any }) {
-  const [towerView, setTowerView] = useState<'graph' | 'satellite'>('graph');
+function ControlTower({ navigate, fleetUtilisation, disruptions, kpis }: { navigate: (to: string) => void; fleetUtilisation: string; pendingActions?: number; disruptions: any[]; kpis: any }) {
+  const [towerView, setTowerView] = useState<'graph' | 'satellite'>('satellite');
+  const [demoStep, setDemoStep] = useState<number>(1);
+  const [isAutoPlaying, setIsAutoPlaying] = useState<boolean>(false);
+  const [showDemoBanner, setShowDemoBanner] = useState<boolean>(true);
+  const [selectedDemoId, setSelectedDemoId] = useState<string>('SHP-1042');
+
+  const currentStepData = JUDGE_DEMO_STEPS[demoStep - 1] || JUDGE_DEMO_STEPS[0];
+
+  // Auto-play timer (3.5s per step)
+  useEffect(() => {
+    let timer: any = null;
+    if (isAutoPlaying) {
+      timer = setInterval(() => {
+        setDemoStep((prev) => {
+          if (prev >= 11) {
+            setIsAutoPlaying(false);
+            return 11;
+          }
+          return prev + 1;
+        });
+      }, 3500);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isAutoPlaying]);
+
+  const handleToggleAutoPlay = () => {
+    if (!isAutoPlaying && demoStep >= 11) {
+      setDemoStep(1);
+    }
+    setIsAutoPlaying(!isAutoPlaying);
+  };
+
+  const handleResetDemo = () => {
+    setIsAutoPlaying(false);
+    setDemoStep(1);
+  };
+
+  const handleAdvanceStep = () => {
+    if (demoStep < 11) setDemoStep(demoStep + 1);
+  };
+
+  const handleBackStep = () => {
+    if (demoStep > 1) setDemoStep(demoStep - 1);
+  };
+
+  const handleTriggerAction = () => {
+    setDemoStep(9); // Moves to Recovery phase
+  };
+
+  const handleOpenAuditModal = () => {
+    navigate('/cold-chain');
+  };
+
+  // Dynamic telemetry chart data reflecting current demo step
+  const getDynamicTelemetry = () => {
+    const minT = currentStepData.safeMin;
+    const maxT = currentStepData.safeMax;
+    const curT = currentStepData.temp;
+    const isExc = curT > maxT || curT < minT;
+
+    return [
+      { t: '00:00', v: 4.0, safeMin: minT, safeMax: maxT, ambient: 26.5 },
+      { t: '04:00', v: 4.1, safeMin: minT, safeMax: maxT, ambient: 27.2 },
+      { t: '08:00', v: demoStep >= 2 ? 6.8 : 4.2, safeMin: minT, safeMax: maxT, ambient: 31.8 },
+      { t: '12:00', v: demoStep >= 3 ? (demoStep >= 5 ? 10.3 : 7.9) : 4.4, safeMin: minT, safeMax: maxT, ambient: 36.4 },
+      { t: '16:00', v: demoStep >= 9 ? (demoStep >= 10 ? 4.2 : 7.2) : (demoStep >= 4 ? 8.6 : 4.3), safeMin: minT, safeMax: maxT, ambient: 34.1 },
+      { t: '20:00', v: curT, safeMin: minT, safeMax: maxT, ambient: 29.8 },
+    ];
+  };
+
+  const telemetryData = getDynamicTelemetry();
+
+  // Dynamic containers array synced with Demo Step
+  const dynamicContainers: ColdContainerMapItem[] = [
+    {
+      id: 'SHP-1042',
+      container_id: 'CTN-8801',
+      shipment_id: 'SHP-1042',
+      cargo: 'Pfizer COVID-19 Vaccine Vials',
+      product: 'Pfizer COVID-19 Vaccine Vials',
+      asset: 'TRK-204 (BharatBenz Heavy Reefer)',
+      lat: currentStepData.lat,
+      lng: currentStepData.lng,
+      origin: 'Mumbai JNPT',
+      destination: 'Frankfurt Hub',
+      origin_coords: [18.9401, 72.8347],
+      dest_coords: [50.1109, 8.6821],
+      temp: `${currentStepData.temp.toFixed(1)}°C`,
+      temp_val: currentStepData.temp,
+      peak_temp: `${currentStepData.peakTemp.toFixed(1)}°C`,
+      peak_temp_val: currentStepData.peakTemp,
+      safe_min_temp: currentStepData.safeMin,
+      safe_max_temp: currentStepData.safeMax,
+      required_range: '2–8°C',
+      sop_range: '2.0°C to 8.0°C',
+      excursion_duration_mins: currentStepData.status === 'CRITICAL' ? 36 : 0,
+      status: currentStepData.status,
+      severity: currentStepData.status,
+      risk_probability: currentStepData.risk / 100,
+      is_anomaly: currentStepData.status !== 'NORMAL',
+      anomaly_layer: currentStepData.anomalyLayer,
+      nearest_hub: {
+        id: 'HUB-PUNE-01',
+        name: 'Pune Pharma Cold Hub',
+        location: 'Pune',
+        lat: 18.5204,
+        lng: 73.8567,
+        distance_km: demoStep >= 9 ? 18 : 74,
+        eta_minutes: demoStep >= 9 ? 18 : 58,
+        available_tons: 140,
+        status: 'AVAILABLE'
+      },
+      recommended_action: currentStepData.recommendedAction,
+      action_description: currentStepData.aiExplanation,
+      cargo_value: '$1,250,000'
+    },
+    {
+      id: 'SHP-1051',
+      container_id: 'CTN-9204',
+      shipment_id: 'SHP-1051',
+      cargo: 'Specialty Biologics (Insulin)',
+      product: 'Specialty Biologics (Insulin)',
+      asset: 'VES-802',
+      lat: 13.0827,
+      lng: 80.2707,
+      origin: 'Chennai Port',
+      destination: 'Singapore Port',
+      origin_coords: [13.0827, 80.2707],
+      dest_coords: [1.3521, 103.8198],
+      temp: '4.8°C',
+      temp_val: 4.8,
+      peak_temp: '5.1°C',
+      peak_temp_val: 5.1,
+      safe_min_temp: 2.0,
+      safe_max_temp: 8.0,
+      required_range: '2–8°C',
+      sop_range: '2.0°C to 8.0°C',
+      excursion_duration_mins: 0,
+      status: 'NORMAL',
+      severity: 'NORMAL',
+      risk_probability: 0.06,
+      is_anomaly: false,
+      anomaly_layer: 'NONE',
+      nearest_hub: {
+        id: 'HUB-CHN-01',
+        name: 'Chennai Port Reefer Station',
+        location: 'Chennai',
+        lat: 13.0827,
+        lng: 80.2707,
+        distance_km: 12,
+        eta_minutes: 20,
+        available_tons: 320,
+        status: 'AVAILABLE'
+      },
+      recommended_action: 'CONTINUE_MONITORING',
+      action_description: 'Operating nominally. Thermal baseline verified.',
+      cargo_value: '$740,000'
+    },
+    {
+      id: 'SHP-1063',
+      container_id: 'CTN-4421',
+      shipment_id: 'SHP-1063',
+      cargo: 'Semiconductors / High-Value Tech',
+      product: 'High-Value Semiconductors',
+      asset: 'TRK-201',
+      lat: 28.6139,
+      lng: 77.2090,
+      origin: 'Delhi Terminal',
+      destination: 'Frankfurt Hub',
+      origin_coords: [28.6139, 77.2090],
+      dest_coords: [50.1109, 8.6821],
+      temp: '5.2°C',
+      temp_val: 5.2,
+      peak_temp: '5.4°C',
+      peak_temp_val: 5.4,
+      safe_min_temp: 2.0,
+      safe_max_temp: 8.0,
+      required_range: '2–8°C',
+      sop_range: '2.0°C to 8.0°C',
+      excursion_duration_mins: 0,
+      status: 'NORMAL',
+      severity: 'NORMAL',
+      risk_probability: 0.08,
+      is_anomaly: false,
+      anomaly_layer: 'NONE',
+      nearest_hub: {
+        id: 'HUB-DEL-01',
+        name: 'Delhi NCR Cargo Cold Hub',
+        location: 'Delhi',
+        lat: 28.5562,
+        lng: 77.1000,
+        distance_km: 18,
+        eta_minutes: 24,
+        available_tons: 180,
+        status: 'AVAILABLE'
+      },
+      recommended_action: 'CONTINUE_MONITORING',
+      action_description: 'Transit on schedule. All telemetry normal.',
+      cargo_value: '$510,000'
+    }
+  ];
+
+  const dynamicRoutes: ColdRouteMapItem[] = [
+    {
+      shipment_id: 'SHP-1042',
+      container_id: 'SHP-1042',
+      status: currentStepData.status,
+      origin: 'Mumbai',
+      destination: 'Frankfurt',
+      points: [[18.9401, 72.8347], [22.8395, 69.7214], [50.1109, 8.6821]],
+      diversion_points: currentStepData.diversionPoints
+    },
+    {
+      shipment_id: 'SHP-1051',
+      container_id: 'SHP-1051',
+      status: 'NORMAL',
+      origin: 'Chennai',
+      destination: 'Singapore',
+      points: [[13.0827, 80.2707], [1.3521, 103.8198]]
+    },
+    {
+      shipment_id: 'SHP-1063',
+      container_id: 'SHP-1063',
+      status: 'NORMAL',
+      origin: 'Delhi',
+      destination: 'Frankfurt',
+      points: [[28.6139, 77.2090], [50.1109, 8.6821]]
+    }
+  ];
+
+  const dynamicHubs: ColdHubMapItem[] = [
+    { id: 'HUB-PUNE-01', name: 'Pune Pharma Cold Hub', location: 'Pune', lat: 18.5204, lng: 73.8567, temp_zones: ['2-8°C'], capacity_tons: 200, available_tons: 140, occupied_pct: 30, status: 'OPERATIONAL' },
+    { id: 'HUB-MUN-01', name: 'Mundra Port Cold Terminal', location: 'Mundra', lat: 22.8395, lng: 69.7214, temp_zones: ['2-8°C', '-20°C'], capacity_tons: 350, available_tons: 210, occupied_pct: 40, status: 'OPERATIONAL' },
+    { id: 'HUB-CHN-01', name: 'Chennai Port Reefer Station', location: 'Chennai', lat: 13.0827, lng: 80.2707, temp_zones: ['-20°C', '2-8°C'], capacity_tons: 400, available_tons: 320, occupied_pct: 20, status: 'OPERATIONAL' },
+    { id: 'HUB-DEL-01', name: 'Delhi NCR Cargo Cold Hub', location: 'Delhi', lat: 28.5562, lng: 77.1000, temp_zones: ['2-8°C'], capacity_tons: 250, available_tons: 180, occupied_pct: 28, status: 'OPERATIONAL' }
+  ];
 
   return (
     <div className="page-stack">
+      {/* 1. TOP RISK & INCIDENT BANNER */}
       <div className="risk-banner">
         <div>
           <span className="pulse" />
           <div>
-            <strong>NETWORK STATUS: AT RISK</strong>
-            <p>Active disruptions are currently affecting shipments across the Western corridor.</p>
+            <strong>NETWORK STATUS: {currentStepData.status === 'CRITICAL' ? 'CRITICAL EXCURSION ACTIVE' : currentStepData.status === 'MEDIUM' ? 'ANOMALY DETECTED' : 'OPERATIONAL MONITORING'}</strong>
+            <p>
+              {currentStepData.status === 'CRITICAL'
+                ? 'Active thermal excursion detected on Western Expressway (SHP-1042 / CTN-8801). Immediate diversion in progress.'
+                : 'Real-time multi-echelon tracking across India, Asia, and Europe corridors. AI decision engine active.'}
+            </p>
           </div>
         </div>
-        <button className="outline-btn" onClick={() => navigate('/disruptions')}>
-          View Critical Events <ArrowRight size={14} />
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button className="outline-btn" onClick={() => setShowDemoBanner(!showDemoBanner)}>
+            <Sparkles size={14} style={{ color: '#08B5E5' }} />
+            <span>{showDemoBanner ? 'Hide Judge Demo' : '🏆 Open Judge Demo (11 Steps)'}</span>
+          </button>
+          <button className="outline-btn" onClick={() => navigate('/disruptions')}>
+            View Disruptions <ArrowRight size={14} />
+          </button>
+        </div>
       </div>
 
-      <div className="kpi-grid six">
-        <KPI icon={AlertTriangle} value={kpis?.active_disruptions?.value || "4"} label="Active Disruptions" note={kpis?.active_disruptions?.note || "Critical: 1"} tone="red" />
-        <KPI icon={Package} value={kpis?.affected_shipments?.value || "23"} label="Affected Shipments" note={kpis?.affected_shipments?.note || "8 critical"} tone="orange" />
-        <KPI icon={Gauge} value={fleetUtilisation} label="Fleet Utilisation" note="133 of 186 assets active" tone="green" />
-        <KPI icon={Clock3} value={kpis?.idle_assets?.value || "12"} label="Idle Assets" note="4 redeployment opportunities" tone="orange" />
-        <KPI icon={Thermometer} value={kpis?.cold_chain_alerts?.value || "5"} label="Cold Chain Alerts" note="2 critical excursions" tone="yellow" />
-        <KPI icon={CircleDollarSign} value={kpis?.cargo_at_risk?.value || "$4.8M"} label="Cargo at Risk" note="Across critical shipments" tone="red" />
+      {/* 2. DEDICATED 11-STEP INTERACTIVE JUDGE DEMO MODE */}
+      {showDemoBanner && (
+        <JudgeDemoBar
+          currentStep={demoStep}
+          onStepSelect={(step) => {
+            setIsAutoPlaying(false);
+            setDemoStep(step);
+          }}
+          isPlaying={isAutoPlaying}
+          onTogglePlay={handleToggleAutoPlay}
+          onReset={handleResetDemo}
+          onAdvance={handleAdvanceStep}
+          onBack={handleBackStep}
+          onTriggerAction={handleTriggerAction}
+          onOpenAudit={handleOpenAuditModal}
+        />
+      )}
+
+      {/* 3. 7 ENTERPRISE REAL-TIME KPIS */}
+      <div className="kpi-grid seven">
+        <KPI
+          icon={Package}
+          value={kpis?.active_shipments?.value || "28"}
+          label="Active Shipments"
+          note="↑ +3 this week"
+          tone="cyan"
+        />
+        <KPI
+          icon={Truck}
+          value={kpis?.in_transit?.value || "21"}
+          label="In Transit"
+          note="95% on schedule"
+          tone="blue"
+        />
+        <KPI
+          icon={Thermometer}
+          value={kpis?.temperature_compliance?.value || (currentStepData.status === 'CRITICAL' ? "94.2%" : "98.4%")}
+          label="Temp Compliance"
+          note="SOP 2.0°C–8.0°C"
+          tone={currentStepData.status === 'CRITICAL' ? "yellow" : "green"}
+        />
+        <KPI
+          icon={AlertTriangle}
+          value={kpis?.at_risk?.value || (currentStepData.status === 'CRITICAL' ? "5" : "4")}
+          label="At Risk"
+          note="$1.45M exposure"
+          tone="orange"
+        />
+        <KPI
+          icon={ShieldAlert}
+          value={kpis?.critical_alerts?.value || (currentStepData.status === 'CRITICAL' ? "3" : "1")}
+          label="Critical Alerts"
+          note={currentStepData.status === 'CRITICAL' ? "Action required" : "1 active incident"}
+          tone="red"
+        />
+        <KPI
+          icon={Gauge}
+          value={kpis?.on_time_delivery?.value || "96.2%"}
+          label="On-Time Delivery"
+          note="SLA benchmark 95%"
+          tone="green"
+        />
+        <KPI
+          icon={CheckCircle2}
+          value={fleetUtilisation || "94.8%"}
+          label="Fleet Health"
+          note="133 of 186 active"
+          tone="cyan"
+        />
       </div>
 
+      {/* 4. CENTERPIECE LEAFLET MAP & DISRUPTIONS PANEL */}
       <div className="tower-grid">
         <Panel className="map-panel">
           <PageIntro
-            title="Network Risk Map"
-            subtitle="India · Asia · Europe logistics network"
+            title="Global Logistics Risk Map & Multi-Corridor Tracking"
+            subtitle="Real-time Leaflet GIS with geofenced cold hubs, live reefer status pings, and emergency diversion corridors"
             right={
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div className="mode-toggle-group">
-                  <button
-                    className={`mode-toggle-btn ${towerView === 'graph' ? 'active' : ''}`}
-                    onClick={() => setTowerView('graph')}
-                    style={{ padding: '3px 8px', fontSize: 10 }}
-                  >
-                    📊 Topology
-                  </button>
                   <button
                     className={`mode-toggle-btn ${towerView === 'satellite' ? 'active' : ''}`}
                     onClick={() => setTowerView('satellite')}
@@ -546,8 +1304,15 @@ function ControlTower({ navigate, fleetUtilisation, pendingActions, disruptions,
                   >
                     🛰️ Satellite Map
                   </button>
+                  <button
+                    className={`mode-toggle-btn ${towerView === 'graph' ? 'active' : ''}`}
+                    onClick={() => setTowerView('graph')}
+                    style={{ padding: '3px 8px', fontSize: 10 }}
+                  >
+                    📊 Topology
+                  </button>
                 </div>
-                <span className="live-label"><i className="dot green" /> Live network</span>
+                <span className="live-label"><i className="dot green" /> Live GPS &amp; IoT Sync</span>
               </div>
             }
           />
@@ -565,145 +1330,9 @@ function ControlTower({ navigate, fleetUtilisation, pendingActions, disruptions,
           ) : (
             <div style={{ marginTop: 8 }}>
               <LiveColdMap
-                containers={[
-                  {
-                    id: 'SHP-1042',
-                    container_id: 'CTN-8801',
-                    shipment_id: 'SHP-1042',
-                    cargo: 'Vaccines (Biologics)',
-                    product: 'Pfizer COVID-19 Vaccine Vials',
-                    asset: 'TRK-204',
-                    lat: 18.9401,
-                    lng: 72.8347,
-                    origin: 'Mumbai JNPT',
-                    destination: 'Frankfurt Hub',
-                    origin_coords: [18.9401, 72.8347],
-                    dest_coords: [50.1109, 8.6821],
-                    temp: '10.3°C',
-                    temp_val: 10.3,
-                    peak_temp: '11.2°C',
-                    peak_temp_val: 11.2,
-                    safe_min_temp: 2.0,
-                    safe_max_temp: 8.0,
-                    required_range: '2–8°C',
-                    sop_range: '2.0°C to 8.0°C',
-                    excursion_duration_mins: 45,
-                    status: 'CRITICAL',
-                    severity: 'CRITICAL',
-                    risk_probability: 0.94,
-                    is_anomaly: true,
-                    anomaly_layer: 'L1_BOUNDS',
-                    nearest_hub: {
-                      id: 'HUB-PUNE-01',
-                      name: 'Pune Pharma Cold Hub',
-                      location: 'Pune',
-                      lat: 18.5204,
-                      lng: 73.8567,
-                      distance_km: 74,
-                      eta_minutes: 58,
-                      available_tons: 140,
-                      status: 'AVAILABLE'
-                    },
-                    recommended_action: 'DIVERT_TO_COLD_HUB',
-                    action_description: 'Reroute via Mundra to avoid Mumbai strike.',
-                    cargo_value: '$1,250,000'
-                  },
-                  {
-                    id: 'SHP-1051',
-                    container_id: 'CTN-9204',
-                    shipment_id: 'SHP-1051',
-                    cargo: 'Pharmaceuticals',
-                    product: 'Pharmaceutical Consignment',
-                    asset: 'VES-802',
-                    lat: 13.0827,
-                    lng: 80.2707,
-                    origin: 'Chennai Port',
-                    destination: 'Singapore Port',
-                    origin_coords: [13.0827, 80.2707],
-                    dest_coords: [1.3521, 103.8198],
-                    temp: '4.8°C',
-                    temp_val: 4.8,
-                    peak_temp: '5.1°C',
-                    peak_temp_val: 5.1,
-                    safe_min_temp: 2.0,
-                    safe_max_temp: 8.0,
-                    required_range: '2–8°C',
-                    sop_range: '2.0°C to 8.0°C',
-                    excursion_duration_mins: 0,
-                    status: 'NORMAL',
-                    severity: 'NORMAL',
-                    risk_probability: 0.08,
-                    is_anomaly: false,
-                    anomaly_layer: 'NONE',
-                    nearest_hub: {
-                      id: 'HUB-CHN-01',
-                      name: 'Chennai Port Reefer Station',
-                      location: 'Chennai',
-                      lat: 13.0827,
-                      lng: 80.2707,
-                      distance_km: 12,
-                      eta_minutes: 20,
-                      available_tons: 320,
-                      status: 'AVAILABLE'
-                    },
-                    recommended_action: 'CONTINUE_MONITORING',
-                    action_description: 'Operating nominally.',
-                    cargo_value: '$740,000'
-                  },
-                  {
-                    id: 'SHP-1063',
-                    container_id: 'CTN-4421',
-                    shipment_id: 'SHP-1063',
-                    cargo: 'Electronics / Devices',
-                    product: 'High-Value Semiconductors',
-                    asset: 'TRK-201',
-                    lat: 28.6139,
-                    lng: 77.2090,
-                    origin: 'Delhi Terminal',
-                    destination: 'Frankfurt Hub',
-                    origin_coords: [28.6139, 77.2090],
-                    dest_coords: [50.1109, 8.6821],
-                    temp: '5.2°C',
-                    temp_val: 5.2,
-                    peak_temp: '5.4°C',
-                    peak_temp_val: 5.4,
-                    safe_min_temp: 2.0,
-                    safe_max_temp: 8.0,
-                    required_range: '2–8°C',
-                    sop_range: '2.0°C to 8.0°C',
-                    excursion_duration_mins: 0,
-                    status: 'NORMAL',
-                    severity: 'NORMAL',
-                    risk_probability: 0.12,
-                    is_anomaly: false,
-                    anomaly_layer: 'NONE',
-                    nearest_hub: {
-                      id: 'HUB-DEL-01',
-                      name: 'Delhi NCR Cargo Cold Hub',
-                      location: 'Delhi',
-                      lat: 28.5562,
-                      lng: 77.1000,
-                      distance_km: 18,
-                      eta_minutes: 24,
-                      available_tons: 180,
-                      status: 'AVAILABLE'
-                    },
-                    recommended_action: 'CONTINUE_MONITORING',
-                    action_description: 'Transit on schedule.',
-                    cargo_value: '$510,000'
-                  }
-                ]}
-                hubs={[
-                  { id: 'HUB-PUNE-01', name: 'Pune Pharma Cold Hub', location: 'Pune', lat: 18.5204, lng: 73.8567, temp_zones: ['2-8°C'], capacity_tons: 200, available_tons: 140, occupied_pct: 30, status: 'OPERATIONAL' },
-                  { id: 'HUB-MUN-01', name: 'Mundra Port Cold Terminal', location: 'Mundra', lat: 22.8395, lng: 69.7214, temp_zones: ['2-8°C', '-20°C'], capacity_tons: 350, available_tons: 210, occupied_pct: 40, status: 'OPERATIONAL' },
-                  { id: 'HUB-CHN-01', name: 'Chennai Port Reefer Station', location: 'Chennai', lat: 13.0827, lng: 80.2707, temp_zones: ['-20°C', '2-8°C'], capacity_tons: 400, available_tons: 320, occupied_pct: 20, status: 'OPERATIONAL' },
-                  { id: 'HUB-DEL-01', name: 'Delhi NCR Cargo Cold Hub', location: 'Delhi', lat: 28.5562, lng: 77.1000, temp_zones: ['2-8°C'], capacity_tons: 250, available_tons: 180, occupied_pct: 28, status: 'OPERATIONAL' }
-                ]}
-                routes={[
-                  { shipment_id: 'SHP-1042', container_id: 'SHP-1042', status: 'CRITICAL', origin: 'Mumbai', destination: 'Frankfurt', points: [[18.9401, 72.8347], [22.8395, 69.7214], [50.1109, 8.6821]], diversion_points: [[18.9401, 72.8347], [18.5204, 73.8567]] },
-                  { shipment_id: 'SHP-1051', container_id: 'SHP-1051', status: 'NORMAL', origin: 'Chennai', destination: 'Singapore', points: [[13.0827, 80.2707], [1.3521, 103.8198]] },
-                  { shipment_id: 'SHP-1063', container_id: 'SHP-1063', status: 'NORMAL', origin: 'Delhi', destination: 'Frankfurt', points: [[28.6139, 77.2090], [50.1109, 8.6821]] }
-                ]}
+                containers={dynamicContainers}
+                hubs={dynamicHubs}
+                routes={dynamicRoutes}
                 selectedContainerId="SHP-1042"
                 onSelectContainer={() => navigate('/cold-chain')}
               />
@@ -712,7 +1341,7 @@ function ControlTower({ navigate, fleetUtilisation, pendingActions, disruptions,
         </Panel>
 
         <Panel className="disruptions-panel">
-          <PageIntro title="Live Disruptions" right={<span className="count-badge">4 Active</span>} />
+          <PageIntro title="Live Disruption Intelligence" right={<span className="count-badge">4 Active</span>} />
           {disruptions.map((item) => (
             <button className="mini-disruption" key={item.name} onClick={() => navigate('/disruptions')}>
               <div className="mini-top">
@@ -727,6 +1356,165 @@ function ControlTower({ navigate, fleetUtilisation, pendingActions, disruptions,
               </div>
             </button>
           ))}
+        </Panel>
+      </div>
+
+      {/* 5. SHIPMENT DETAIL & REAL-TIME TELEMETRY DIAGNOSTIC CARDS */}
+      <div className="telemetry-detail-grid">
+        {/* Left: Complete Operational Telemetry Fields */}
+        <Panel className="telemetry-card-panel">
+          <PageIntro
+            title="Focus Shipment Telemetry & Hardware Diagnostics"
+            subtitle="Container: CTN-8801 · Vehicle: TRK-204 (BharatBenz Heavy Reefer) · Route: Mumbai JNPT → Frankfurt Hub"
+            right={
+              <span className={`badge ${currentStepData.status.toLowerCase()}`}>
+                <i />{currentStepData.status} ({currentStepData.temp}°C)
+              </span>
+            }
+          />
+
+          <div className="telemetry-data-table">
+            <div className="tel-row">
+              <div className="tel-cell">
+                <span className="tel-label">SHIPMENT ID</span>
+                <strong className="tel-val" style={{ color: '#38BDF8' }}>SHP-1042</strong>
+              </div>
+              <div className="tel-cell">
+                <span className="tel-label">ASSIGNED VEHICLE</span>
+                <strong className="tel-val">TRK-204 (BharatBenz 2823C)</strong>
+              </div>
+              <div className="tel-cell">
+                <span className="tel-label">CONTAINER ASSET</span>
+                <strong className="tel-val">CTN-8801 (CryoGuard Multi-Sensor)</strong>
+              </div>
+              <div className="tel-cell">
+                <span className="tel-label">CARGO PRODUCT</span>
+                <strong className="tel-val" style={{ color: '#F1F5F9' }}>Pfizer COVID-19 Vaccine Vials ($1.25M)</strong>
+              </div>
+            </div>
+
+            <div className="tel-row">
+              <div className="tel-cell">
+                <span className="tel-label">CORRIDOR &amp; ROUTE</span>
+                <strong className="tel-val">Mumbai JNPT → Frankfurt Hub</strong>
+              </div>
+              <div className="tel-cell">
+                <span className="tel-label">ETA &amp; DISTANCE</span>
+                <strong className="tel-val">18h 45m · 480 km remaining</strong>
+              </div>
+              <div className="tel-cell">
+                <span className="tel-label">LIVE TEMPERATURE</span>
+                <strong className="tel-val" style={{ color: currentStepData.temp > 8.0 ? '#EF4444' : currentStepData.temp > 6.0 ? '#F59E0B' : '#10B981', fontSize: 16 }}>
+                  {currentStepData.temp}°C <small style={{ fontSize: 10, color: '#7185a3' }}>(SOP: 2.0°C–8.0°C)</small>
+                </strong>
+              </div>
+              <div className="tel-cell">
+                <span className="tel-label">HUMIDITY LEVEL</span>
+                <strong className="tel-val">{currentStepData.humidity}% RH</strong>
+              </div>
+            </div>
+
+            <div className="tel-row">
+              <div className="tel-cell">
+                <span className="tel-label">DOOR STATUS</span>
+                <strong className="tel-val" style={{ color: currentStepData.door === 'CLOSED' ? '#10B981' : '#EF4444' }}>
+                  {currentStepData.door === 'CLOSED' ? '🔒 SECURE / CLOSED' : '🔓 OPEN / BREACH'}
+                </strong>
+              </div>
+              <div className="tel-cell">
+                <span className="tel-label">BATTERY LEVEL</span>
+                <strong className="tel-val">{currentStepData.battery}% (LiFePO4 Backup)</strong>
+              </div>
+              <div className="tel-cell">
+                <span className="tel-label">COOLING COMPRESSOR</span>
+                <strong className="tel-val" style={{ color: currentStepData.cooling === 'ACTIVE' || currentStepData.cooling === 'REENGAGED' ? '#10B981' : currentStepData.cooling === 'WARNING' ? '#F59E0B' : '#EF4444' }}>
+                  {currentStepData.cooling === 'ACTIVE' ? '⚡ ACTIVE COMPRESSOR' : currentStepData.cooling === 'REENGAGED' ? '🔄 REENGAGED (BOOST)' : currentStepData.cooling === 'WARNING' ? '⚠️ HIGH LOAD WARNING' : '❌ COMPRESSOR FAILURE'}
+                </strong>
+              </div>
+              <div className="tel-cell">
+                <span className="tel-label">SIGMOID SPOILAGE RISK</span>
+                <strong className="tel-val" style={{ color: currentStepData.risk > 70 ? '#EF4444' : currentStepData.risk > 30 ? '#F59E0B' : '#10B981' }}>
+                  {currentStepData.risk}% Probability
+                </strong>
+              </div>
+            </div>
+
+            <div className="tel-row single-row">
+              <div className="tel-cell full-width">
+                <span className="tel-label">ML ANOMALY ENGINE STATUS</span>
+                <strong className="tel-val" style={{ color: '#38BDF8' }}>{currentStepData.anomalyLayer}</strong>
+              </div>
+            </div>
+
+            <div className="tel-row single-row">
+              <div className="tel-cell full-width">
+                <span className="tel-label">RECOMMENDED INTERVENTION</span>
+                <p style={{ margin: '4px 0 0', fontSize: 11, color: '#D9E5F5', lineHeight: 1.5 }}>
+                  {currentStepData.aiExplanation}
+                </p>
+              </div>
+            </div>
+          </div>
+        </Panel>
+
+        {/* Right: Enhanced Temperature Telemetry Chart with SOP Safe Bounds */}
+        <Panel className="chart-panel">
+          <PageIntro
+            title="Thermal Compliance Profile &amp; SOP Bounds"
+            subtitle="24-Hour continuous time-series with safe band shading and excursion triggers"
+            right={
+              <span className="range-label">
+                <i /> SOP 2.0°C – 8.0°C Window
+              </span>
+            }
+          />
+
+          <div className="chart-wrap" style={{ height: 260 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={telemetryData}>
+                <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="t" stroke="#64748B" tickLine={false} axisLine={false} />
+                <YAxis domain={[0, 14]} stroke="#64748B" tickLine={false} axisLine={false} tickFormatter={(v) => `${v}°C`} />
+                <Tooltip
+                  contentStyle={{ background: '#09101f', border: '1px solid #1e293b', borderRadius: 8, color: '#fff', fontSize: 11 }}
+                  formatter={(val: any, name: string) => [
+                    `${val}°C`,
+                    name === 'v' ? 'Live Telemetry' : name === 'ambient' ? 'Ambient Temp' : name
+                  ]}
+                />
+                {/* Safe Range Shading 2°C to 8°C */}
+                <ReferenceArea y1={2.0} y2={8.0} fill="#08B5E5" fillOpacity={0.06} />
+                {/* Upper SOP Bound */}
+                <ReferenceLine y={8.0} stroke="#EF4444" strokeDasharray="4 4" label={{ value: 'SOP MAX 8.0°C', position: 'insideTopRight', fill: '#EF4444', fontSize: 10 }} />
+                {/* Lower SOP Bound */}
+                <ReferenceLine y={2.0} stroke="#08B5E5" strokeDasharray="4 4" label={{ value: 'SOP MIN 2.0°C', position: 'insideBottomRight', fill: '#08B5E5', fontSize: 10 }} />
+
+                <Line
+                  type="monotone"
+                  dataKey="v"
+                  name="v"
+                  stroke={currentStepData.temp > 8.0 ? "#EF4444" : currentStepData.temp > 6.0 ? "#F59E0B" : "#10B981"}
+                  strokeWidth={3}
+                  dot={{ fill: currentStepData.temp > 8.0 ? "#EF4444" : currentStepData.temp > 6.0 ? "#F59E0B" : "#10B981", r: 4 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="ambient"
+                  name="ambient"
+                  stroke="#64748B"
+                  strokeWidth={1.5}
+                  strokeDasharray="3 3"
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#94A3B8', marginTop: 10, paddingTop: 8, borderTop: '1px solid #1e293b' }}>
+            <span>🟢 Safe Range: 2.0°C – 8.0°C</span>
+            <span>🔴 Breach Threshold: &gt;8.0°C</span>
+            <span>⚪ Dashed: Ambient Outdoor Temp</span>
+          </div>
         </Panel>
       </div>
     </div>
@@ -770,6 +1558,8 @@ function RiskMap() {
 }
 
 function ShipmentsPage({ navigate, notify, shipments }: { navigate: (to: string) => void; notify: (message: string, tone?: Toast['tone']) => void; shipments: Shipment[] }) {
+  const [viewMode, setViewMode] = useState<'cargo3d' | 'table'>('cargo3d');
+  const [selectedVehicle, setSelectedVehicle] = useState<string>('TX-9913-HX');
   const [tab, setTab] = useState('All');
   const [query, setQuery] = useState('');
 
@@ -791,66 +1581,113 @@ function ShipmentsPage({ navigate, notify, shipments }: { navigate: (to: string)
     notify('Shipment data exported as CSV.');
   };
 
+  const handleSelectShipmentFromTable = (shipment: Shipment) => {
+    setSelectedVehicle(shipment.asset || 'TX-9913-HX');
+    setViewMode('cargo3d');
+  };
+
   return (
     <div className="page-stack">
-      <div className="kpi-grid four">
-        <KPI value={String(shipments.length)} label="Total Shipments" tone="cyan" />
-        <KPI value={String(shipments.filter(s => s.risk >= 85).length)} label="Critical" tone="red" />
-        <KPI value={String(shipments.filter(s => s.risk >= 65 && s.risk < 85).length)} label="At Risk" tone="orange" />
-        <KPI value={String(shipments.filter(s => s.risk < 50).length)} label="On Track" tone="green" />
+      {/* View Switcher Controls */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: -4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="mode-toggle-group">
+            <button
+              className={`mode-toggle-btn ${viewMode === 'cargo3d' ? 'active' : ''}`}
+              onClick={() => setViewMode('cargo3d')}
+              style={{ padding: '4px 10px', fontSize: 11, fontWeight: 700 }}
+            >
+              📦 3D Cargo Layout
+            </button>
+            <button
+              className={`mode-toggle-btn ${viewMode === 'table' ? 'active' : ''}`}
+              onClick={() => setViewMode('table')}
+              style={{ padding: '4px 10px', fontSize: 11 }}
+            >
+              📋 Fleet Shipments Table
+            </button>
+          </div>
+        </div>
+
+        {viewMode === 'table' && (
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className="small-btn" onClick={exportCsv}><Download size={13} /> Export CSV</button>
+          </div>
+        )}
       </div>
 
-      <Panel className="table-panel">
-        <div className="table-toolbar">
-          <div className="tabs">
-            {['All', 'Critical', 'At Risk', 'Delayed', 'On Track'].map((name) => (
-              <button key={name} className={tab === name ? 'selected' : ''} onClick={() => setTab(name)}>
-                {name}
-                <b>
-                  {name === 'All' ? shipments.length :
-                   name === 'Critical' ? shipments.filter(s => s.risk >= 85).length :
-                   name === 'At Risk' ? shipments.filter(s => s.risk >= 65 && s.risk < 85).length :
-                   name === 'Delayed' ? shipments.filter(s => s.disruption !== 'None').length :
-                   shipments.filter(s => s.risk < 50).length}
-                </b>
-              </button>
-            ))}
+      {viewMode === 'cargo3d' ? (
+        <ShipmentCargoDetail
+          navigate={navigate}
+          notify={notify}
+          initialVehicleId={selectedVehicle}
+        />
+      ) : (
+        <>
+          <div className="kpi-grid four">
+            <KPI value={String(shipments.length)} label="Total Shipments" tone="cyan" />
+            <KPI value={String(shipments.filter(s => s.risk >= 85).length)} label="Critical" tone="red" />
+            <KPI value={String(shipments.filter(s => s.risk >= 65 && s.risk < 85).length)} label="At Risk" tone="orange" />
+            <KPI value={String(shipments.filter(s => s.risk < 50).length)} label="On Track" tone="green" />
           </div>
-          <div className="toolbar-actions">
-            <label className="searchbox compact">
-              <Search size={14} />
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search shipments..." />
-            </label>
-            <button className="small-btn"><Filter size={14} />Filter</button>
-            <button className="small-btn" onClick={exportCsv}><Download size={14} />Export</button>
-          </div>
-        </div>
 
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Shipment</th>
-                <th>Route</th>
-                <th>Cargo</th>
-                <th>Value</th>
-                <th>ETA</th>
-                <th>Risk</th>
-                <th>Disruption</th>
-                <th>Carrier</th>
-                <th>Asset</th>
-                <th>AI Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((shipment) => (
-                <ShipmentRow key={shipment.id} shipment={shipment} onClick={() => navigate('/disruptions')} />
-              ))}
-            </tbody>
-          </table>
-          {filtered.length === 0 && <div className="empty-state">No shipments match your filters.</div>}
-        </div>
-      </Panel>
+          <Panel className="table-panel">
+            <div className="table-toolbar">
+              <div className="tabs">
+                {['All', 'Critical', 'At Risk', 'Delayed', 'On Track'].map((name) => (
+                  <button key={name} className={tab === name ? 'selected' : ''} onClick={() => setTab(name)}>
+                    {name}
+                    <b>
+                      {name === 'All' ? shipments.length :
+                       name === 'Critical' ? shipments.filter(s => s.risk >= 85).length :
+                       name === 'At Risk' ? shipments.filter(s => s.risk >= 65 && s.risk < 85).length :
+                       name === 'Delayed' ? shipments.filter(s => s.disruption !== 'None').length :
+                       shipments.filter(s => s.risk < 50).length}
+                    </b>
+                  </button>
+                ))}
+              </div>
+              <div className="toolbar-actions">
+                <label className="searchbox compact">
+                  <Search size={14} />
+                  <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search shipments..." />
+                </label>
+                <button className="small-btn"><Filter size={14} />Filter</button>
+                <button className="small-btn" onClick={exportCsv}><Download size={14} />Export</button>
+              </div>
+            </div>
+
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Shipment</th>
+                    <th>Route</th>
+                    <th>Cargo</th>
+                    <th>Value</th>
+                    <th>ETA</th>
+                    <th>Risk</th>
+                    <th>Disruption</th>
+                    <th>Carrier</th>
+                    <th>Asset</th>
+                    <th>AI Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((shipment) => (
+                    <ShipmentRow
+                      key={shipment.id}
+                      shipment={shipment}
+                      onClick={() => handleSelectShipmentFromTable(shipment)}
+                    />
+                  ))}
+                </tbody>
+              </table>
+              {filtered.length === 0 && <div className="empty-state">No shipments match your filters.</div>}
+            </div>
+          </Panel>
+        </>
+      )}
     </div>
   );
 }
@@ -890,7 +1727,7 @@ function ShipmentRow({ shipment, onClick }: { shipment: Shipment; onClick: () =>
   );
 }
 
-function DisruptionsPage({ navigate, disruptions }: { navigate: (to: string) => void; disruptions: any[] }) {
+function DisruptionsPage({ disruptions }: { navigate?: (to: string) => void; disruptions: any[] }) {
   const [filter, setFilter] = useState('All Events');
   const [selectedDisruptionId, setSelectedDisruptionId] = useState<string>('DIS-01');
   const [impactData, setImpactData] = useState<any>(null);
@@ -1195,7 +2032,7 @@ function ActionCard({ action, onAction, onDetails }: { action: AIAction; onActio
   );
 }
 
-function Redeployments({ opportunities, onRedeploy, notify }: { opportunities: any[]; onRedeploy: (assetId: string) => void; notify: (message: string, tone?: Toast['tone']) => void }) {
+function Redeployments({ opportunities, onRedeploy }: { opportunities: any[]; onRedeploy: (assetId: string) => void; notify?: (message: string, tone?: Toast['tone']) => void }) {
   return (
     <div className="redeploy-section">
       <div className="section-heading">
@@ -1327,6 +2164,29 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
   const [showAuditModal, setShowAuditModal] = useState<boolean>(false);
   const [auditData, setAuditData] = useState<any>(null);
   const [loadingAudit, setLoadingAudit] = useState<boolean>(false);
+  const [demoStep, setDemoStep] = useState<number>(1);
+  const [isAutoPlaying, setIsAutoPlaying] = useState<boolean>(false);
+  const [showDemoBar, setShowDemoBar] = useState<boolean>(false);
+
+  const currentStepData = JUDGE_DEMO_STEPS[demoStep - 1] || JUDGE_DEMO_STEPS[0];
+
+  useEffect(() => {
+    let timer: any = null;
+    if (isAutoPlaying) {
+      timer = setInterval(() => {
+        setDemoStep((prev) => {
+          if (prev >= 11) {
+            setIsAutoPlaying(false);
+            return 11;
+          }
+          return prev + 1;
+        });
+      }, 3500);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isAutoPlaying]);
 
   // Persistent custom/created containers
   const [customContainers, setCustomContainers] = useState<ColdContainerMapItem[]>(() => {
@@ -1976,14 +2836,14 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
     }
   };
 
-  const handleSimulateExcursion = async (targetTemp: number, durationMins: number, desc?: string) => {
+  const handleSimulateExcursion = async (targetTemp: number, durationMins: number, _desc?: string) => {
     setIsSimulating(true);
     try {
       const res = await api.simulateExcursion({
         container_id: selectedContainer.id || selectedContainer.container_id,
-        target_temp: targetTemp,
-        duration_mins: durationMins,
-        description: desc
+        target_temperature_c: targetTemp,
+        excursion_duration_mins: durationMins,
+        mode: 'SAFETY'
       });
       await Promise.all([
         loadAllColdChainData(diversionMode),
@@ -2116,7 +2976,13 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
   const handleBulkImport = async () => {
     setIsBulkImporting(true);
     try {
-      const res = await api.bulkImportContainers(5);
+      const res = await api.bulkImportContainers([
+        { container_id: `CTN-AUTO-${Date.now().toString(36).toUpperCase()}`, product_type: 'Vaccines' },
+        { container_id: `CTN-AUTO-${(Date.now() + 1).toString(36).toUpperCase()}`, product_type: 'Pharmaceuticals' },
+        { container_id: `CTN-AUTO-${(Date.now() + 2).toString(36).toUpperCase()}`, product_type: 'Biologics' },
+        { container_id: `CTN-AUTO-${(Date.now() + 3).toString(36).toUpperCase()}`, product_type: 'Vaccines' },
+        { container_id: `CTN-AUTO-${(Date.now() + 4).toString(36).toUpperCase()}`, product_type: 'Pharmaceuticals' }
+      ]);
       if (res && res.containers && res.containers.length > 0) {
         await loadAllColdChainData(diversionMode);
         if (notify) notify(res?.message || 'Successfully onboarded 5 live test containers to fleet.');
@@ -2332,6 +3198,14 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
           {/* Action Buttons */}
           <button
             className="small-btn"
+            style={{ background: showDemoBar ? '#08b5e5' : '#102d46', borderColor: '#38bdf8', color: showDemoBar ? '#001824' : '#38bdf8', fontWeight: 700 }}
+            onClick={() => setShowDemoBar(!showDemoBar)}
+            title="Toggle Judge Interactive 11-Step Walkthrough"
+          >
+            <Sparkles size={13} /> {showDemoBar ? 'Hide Judge Demo' : '🏆 Judge Demo Mode (11 Steps)'}
+          </button>
+          <button
+            className="small-btn"
             style={{ background: '#1c283d', borderColor: '#38bdf8', color: '#38bdf8', fontWeight: 700 }}
             onClick={() => handleOpenAuditModal()}
             title="Generate FDA 21 CFR Part 11 & WHO GDP Regulatory Compliance Audit Certificate"
@@ -2355,6 +3229,29 @@ function ColdChainPage({ notify }: { notify?: (msg: string) => void }) {
           </button>
         </div>
       </div>
+
+      {showDemoBar && (
+        <JudgeDemoBar
+          currentStep={demoStep}
+          onStepSelect={(step) => {
+            setIsAutoPlaying(false);
+            setDemoStep(step);
+          }}
+          isPlaying={isAutoPlaying}
+          onTogglePlay={() => {
+            if (!isAutoPlaying && demoStep >= 11) setDemoStep(1);
+            setIsAutoPlaying(!isAutoPlaying);
+          }}
+          onReset={() => {
+            setIsAutoPlaying(false);
+            setDemoStep(1);
+          }}
+          onAdvance={() => { if (demoStep < 11) setDemoStep(demoStep + 1); }}
+          onBack={() => { if (demoStep > 1) setDemoStep(demoStep - 1); }}
+          onTriggerAction={() => setDemoStep(9)}
+          onOpenAudit={() => handleOpenAuditModal(selectedId)}
+        />
+      )}
 
       {/* 2. TOP COMMAND CENTER KPIS */}
       <div className="kpi-grid five">
@@ -3437,7 +4334,7 @@ function CopilotPage({ navigate, notify }: { navigate?: (to: string) => void; no
           }
         ]);
       }
-    } catch (e) {
+    } catch (_e) {
       setLoading(false);
       setMessages((prev) => [
         ...prev,
@@ -3902,7 +4799,7 @@ function Copilot({ onClose, navigate }: { onClose: () => void; navigate?: (to: s
           }
         ]);
       }
-    } catch (e) {
+    } catch (_e) {
       setLoading(false);
       setMessages((prev) => [
         ...prev,
@@ -4256,10 +5153,48 @@ function SearchResults({ query, navigate, shipments }: { query: string; navigate
   );
 }
 
+
+class ErrorBoundary extends React.Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('ChainGuard ErrorBoundary caught error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: 40, background: '#0a0f1d', color: '#f8fafc', minHeight: '100vh', fontFamily: 'sans-serif' }}>
+          <div style={{ maxWidth: 600, margin: '0 auto', background: '#111827', padding: 24, borderRadius: 12, border: '1px solid #1f2937' }}>
+            <h2 style={{ color: '#ef4444', marginBottom: 12 }}>Application Encountered an Issue</h2>
+            <p style={{ color: '#94a3b8', fontSize: 14 }}>{this.state.error?.message || 'An unexpected error occurred.'}</p>
+            <button
+              onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}
+              style={{ marginTop: 16, background: '#08b5e5', color: '#000', border: 'none', padding: '8px 16px', borderRadius: 6, fontWeight: 'bold', cursor: 'pointer' }}
+            >
+              Reload Application
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   return (
-    <AuthProvider>
-      <AppShell />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppShell />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

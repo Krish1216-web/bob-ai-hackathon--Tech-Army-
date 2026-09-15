@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, JSON
-from datetime import datetime
+from datetime import datetime, timezone
 from app.database import Base
 
 class RecommendationAction(Base):
@@ -11,4 +11,4 @@ class RecommendationAction(Base):
     previous_state = Column(JSON, nullable=True)
     new_state = Column(JSON, nullable=True)
     executed_by = Column(String, default="DISPATCHER")
-    executed_at = Column(DateTime, default=datetime.utcnow)
+    executed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

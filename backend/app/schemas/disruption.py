@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from app.schemas.shipment import ShipmentResponse
 
@@ -19,8 +19,7 @@ class DisruptionResponse(DisruptionBase):
     exposure_amount: str = "$1.25M"
     color: str = "red"
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class DisruptionImpactResponse(BaseModel):
     disruption: DisruptionResponse

@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, Float, Boolean, DateTime, Integer
-from datetime import datetime
+from datetime import datetime, timezone
 from app.database import Base
 
 class Recommendation(Base):
@@ -21,5 +21,5 @@ class Recommendation(Base):
     financial_saving = Column(String, default="$800K")
     actioned = Column(Boolean, default=False)
     action_type = Column(String, nullable=True) # ACCEPTED, REJECTED
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     actioned_at = Column(DateTime, nullable=True)

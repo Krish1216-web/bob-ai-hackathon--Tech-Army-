@@ -4,7 +4,7 @@ Provides database access for Fleet asset tracking, utilization calculations, and
 """
 
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from app.models.fleet_asset import FleetAsset
 
@@ -31,7 +31,7 @@ class FleetRepository:
             asset.status = "ASSIGNED"
             asset.assigned_shipment_id = target_shipment_id
             asset.utilisation_pct = 54.2
-            asset.last_updated = datetime.utcnow()
+            asset.last_updated = datetime.now(timezone.utc)
             db.commit()
             db.refresh(asset)
         return asset

@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, Float, Boolean, DateTime, JSON
-from datetime import datetime
+from datetime import datetime, timezone
 from app.database import Base
 
 class ColdStorageHub(Base):
@@ -20,5 +20,5 @@ class ColdStorageHub(Base):
     temp_zones = Column(JSON, default=["ultra_cold", "chilled", "frozen"])
     status = Column(String, default="OPERATIONAL", index=True)
     contact = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
