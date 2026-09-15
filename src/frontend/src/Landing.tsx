@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import './Landing.css';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -10,59 +11,402 @@ import shipImg from './assets/autonomous_cargo_ship.jpg';
 import vaccineImg from './assets/cold_chain_vaccines.jpg';
 import controlHubImg from './assets/ai_supply_chain_hub.jpg';
 
-/* ─────────── Animated Cybernetic Particle Canvas ─────────── */
-function ParticleCanvas() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+/* ─────────── 3D Interactive Scrolling Background (Three.js) ─────────── */
+function Scrolling3DBackground() {
+  const mountRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d')!;
-    let W = window.innerWidth, H = window.innerHeight;
-    canvas.width = W; canvas.height = H;
-    const resize = () => { W = window.innerWidth; H = window.innerHeight; canvas.width = W; canvas.height = H; };
-    window.addEventListener('resize', resize);
+    const container = mountRef.current;
+    if (!container) return;
 
-    const COUNT = 75;
-    const particles = Array.from({ length: COUNT }, () => ({
-      x: Math.random() * W, y: Math.random() * H,
-      vx: (Math.random() - 0.5) * 0.35, vy: (Math.random() - 0.5) * 0.35,
-      r: Math.random() * 1.6 + 0.4,
-      alpha: Math.random() * 0.5 + 0.2,
-    }));
+    let width = window.innerWidth;
+    let height = window.innerHeight;
 
-    let raf: number;
-    const draw = () => {
-      ctx.clearRect(0, 0, W, H);
-      for (const p of particles) {
-        p.x += p.vx; p.y += p.vy;
-        if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
-        if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(8,181,229,${p.alpha})`;
-        ctx.fill();
-      }
-      for (let i = 0; i < COUNT; i++) {
-        for (let j = i + 1; j < COUNT; j++) {
-          const dx = particles[i].x - particles[j].x;
-          const dy = particles[i].y - particles[j].y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 120) {
-            ctx.beginPath();
-            ctx.moveTo(particles[i].x, particles[i].y);
-            ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = `rgba(22,139,255,${0.14 * (1 - dist / 120)})`;
-            ctx.lineWidth = 0.65;
-            ctx.stroke();
-          }
-        }
-      }
-      raf = requestAnimationFrame(draw);
+    // 1. Scene & Fog Setup
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x020712, 0.011);
+
+    // 2. Camera Setup
+    const camera = new THREE.PerspectiveCamera(55, width / height, 0.1, 1000);
+    camera.position.set(0, 4, 60);
+
+    // 3. Renderer Setup
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
+    container.appendChild(renderer.domElement);
+
+    // 4. Lighting
+    const ambientLight = new THREE.AmbientLight(0x0f2744, 1.8);
+    scene.add(ambientLight);
+
+    const keyLight = new THREE.DirectionalLight(0x08b5e5, 3.5);
+    keyLight.position.set(30, 40, 50);
+    scene.add(keyLight);
+
+    const rimLight = new THREE.PointLight(0x168bff, 4.0, 120);
+    rimLight.position.set(-35, -20, 20);
+    scene.add(rimLight);
+
+    const emeraldLight = new THREE.PointLight(0x10b981, 2.5, 90);
+    emeraldLight.position.set(25, -15, -10);
+    scene.add(emeraldLight);
+
+    // ── 5. Global Holographic Logistics Network (Earth & Arcs) ──
+    const globeGroup = new THREE.Group();
+    scene.add(globeGroup);
+    globeGroup.position.set(16, 2, -5);
+
+    // Wireframe Outer Globe
+    const globeGeo = new THREE.IcosahedronGeometry(18, 4);
+    const globeMat = new THREE.MeshBasicMaterial({
+      color: 0x08b5e5,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.28
+    });
+    const globeMesh = new THREE.Mesh(globeGeo, globeMat);
+    globeGroup.add(globeMesh);
+
+    // Inner Dark Core with Translucent Rim
+    const coreGeo = new THREE.SphereGeometry(17.6, 32, 32);
+    const coreMat = new THREE.MeshStandardMaterial({
+      color: 0x030d1e,
+      emissive: 0x021629,
+      roughness: 0.3,
+      metalness: 0.8,
+      transparent: true,
+      opacity: 0.88
+    });
+    const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+    globeGroup.add(coreMesh);
+
+    // Concentric Orbital Radar Scan Rings
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.35,
+      side: THREE.DoubleSide
+    });
+    const ring1 = new THREE.Mesh(new THREE.RingGeometry(21, 22.2, 48), ringMat);
+    ring1.rotation.x = Math.PI / 2.3;
+    globeGroup.add(ring1);
+
+    const ring2 = new THREE.Mesh(new THREE.RingGeometry(24, 24.8, 48), ringMat);
+    ring2.rotation.y = Math.PI / 3;
+    globeGroup.add(ring2);
+
+    // Global Logistics Waypoint Nodes (Cities & Ports)
+    const hubPositions = [
+      { lat: 32.7, lon: -96.8, name: 'Dallas' },
+      { lat: 29.7, lon: -95.3, name: 'Houston' },
+      { lat: 51.9, lon: 4.4, name: 'Rotterdam' },
+      { lat: 1.3, lon: 103.8, name: 'Singapore' },
+      { lat: 18.9, lon: 72.8, name: 'Mumbai' },
+      { lat: 31.2, lon: 121.4, name: 'Shanghai' },
+      { lat: 25.2, lon: 55.2, name: 'Dubai' },
+      { lat: 37.7, lon: -122.4, name: 'San Francisco' },
+      { lat: -33.8, lon: 151.2, name: 'Sydney' },
+      { lat: 51.5, lon: -0.1, name: 'London' }
+    ];
+
+    function latLonToVector3(lat: number, lon: number, radius: number): THREE.Vector3 {
+      const phi = (90 - lat) * (Math.PI / 180);
+      const theta = (lon + 180) * (Math.PI / 180);
+      return new THREE.Vector3(
+        -(radius * Math.sin(phi) * Math.cos(theta)),
+        radius * Math.cos(phi),
+        radius * Math.sin(phi) * Math.sin(theta)
+      );
+    }
+
+    const hubGeo = new THREE.SphereGeometry(0.55, 12, 12);
+    const hubMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+    const hubVectors: THREE.Vector3[] = [];
+
+    hubPositions.forEach((hub, i) => {
+      const v = latLonToVector3(hub.lat, hub.lon, 18.2);
+      hubVectors.push(v);
+      const hubMesh = new THREE.Mesh(hubGeo, hubMat);
+      hubMesh.position.copy(v);
+      globeGroup.add(hubMesh);
+
+      // Add a small pulsing beacon aura around key hubs
+      const auraGeo = new THREE.RingGeometry(0.8, 1.4, 16);
+      const auraMat = new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0x10b981 : 0x08b5e5, side: THREE.DoubleSide, transparent: true, opacity: 0.6 });
+      const aura = new THREE.Mesh(auraGeo, auraMat);
+      aura.position.copy(v.clone().multiplyScalar(1.02));
+      aura.lookAt(new THREE.Vector3(0, 0, 0));
+      globeGroup.add(aura);
+    });
+
+    // 3D Quadratic Trade Corridor Curves
+    const arcCurves: THREE.QuadraticBezierCurve3[] = [];
+    const arcBeacons: { mesh: THREE.Mesh; curveIndex: number; t: number; speed: number }[] = [];
+    const arcMat = new THREE.LineBasicMaterial({ color: 0x168bff, transparent: true, opacity: 0.45 });
+
+    for (let i = 0; i < hubVectors.length - 1; i++) {
+      const p1 = hubVectors[i];
+      const p2 = hubVectors[(i + 1) % hubVectors.length];
+      const mid = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
+      const dist = p1.distanceTo(p2);
+      mid.normalize().multiplyScalar(18.2 + dist * 0.35);
+
+      const curve = new THREE.QuadraticBezierCurve3(p1, mid, p2);
+      arcCurves.push(curve);
+
+      const pts = curve.getPoints(24);
+      const curveGeo = new THREE.BufferGeometry().setFromPoints(pts);
+      const curveLine = new THREE.Line(curveGeo, arcMat);
+      globeGroup.add(curveLine);
+
+      // Animated glowing beacon moving along the arc
+      const beaconGeo = new THREE.SphereGeometry(0.38, 8, 8);
+      const beaconMat = new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0x38bdf8 : 0x10b981 });
+      const beacon = new THREE.Mesh(beaconGeo, beaconMat);
+      globeGroup.add(beacon);
+      arcBeacons.push({ mesh: beacon, curveIndex: arcCurves.length - 1, t: Math.random(), speed: 0.003 + Math.random() * 0.004 });
+    }
+
+    // ── 6. Undulating Neon Cybernetic Terrain (Flow Grid) ──
+    const gridCols = 44;
+    const gridRows = 44;
+    const terrainGeo = new THREE.PlaneGeometry(160, 160, gridCols, gridRows);
+    const terrainMat = new THREE.MeshBasicMaterial({
+      color: 0x08b5e5,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.22
+    });
+    const terrainMesh = new THREE.Mesh(terrainGeo, terrainMat);
+    terrainMesh.rotation.x = -Math.PI / 2.2;
+    terrainMesh.position.set(0, -22, -15);
+    scene.add(terrainMesh);
+
+    const terrainPositions = terrainGeo.attributes.position;
+    const baseZ = new Float32Array(terrainPositions.count);
+    for (let i = 0; i < terrainPositions.count; i++) {
+      baseZ[i] = terrainPositions.getZ(i);
+    }
+
+    // ── 7. Floating 3D Holographic Supply Chain Nodes ──
+    const floatingNodes: { mesh: THREE.Mesh; rotX: number; rotY: number; rotZ: number; floatSpeed: number; floatOffset: number; baseY: number }[] = [];
+    const geometries = [
+      new THREE.BoxGeometry(2.4, 2.4, 2.4),
+      new THREE.OctahedronGeometry(1.8),
+      new THREE.IcosahedronGeometry(1.6),
+      new THREE.DodecahedronGeometry(1.5)
+    ];
+
+    const nodeColors = [0x08b5e5, 0x168bff, 0x10b981, 0x818cf8, 0x38bdf8];
+
+    for (let i = 0; i < 22; i++) {
+      const geo = geometries[i % geometries.length];
+      const mat = new THREE.MeshStandardMaterial({
+        color: nodeColors[i % nodeColors.length],
+        wireframe: i % 2 === 0,
+        emissive: nodeColors[i % nodeColors.length],
+        emissiveIntensity: 0.4,
+        roughness: 0.2,
+        metalness: 0.8,
+        transparent: true,
+        opacity: 0.75
+      });
+      const node = new THREE.Mesh(geo, mat);
+      
+      const px = (Math.random() - 0.5) * 110;
+      const py = (Math.random() - 0.5) * 45 + 5;
+      const pz = (Math.random() - 0.5) * 70 - 10;
+      node.position.set(px, py, pz);
+
+      scene.add(node);
+      floatingNodes.push({
+        mesh: node,
+        rotX: (Math.random() - 0.5) * 0.015,
+        rotY: (Math.random() - 0.5) * 0.015,
+        rotZ: (Math.random() - 0.5) * 0.015,
+        floatSpeed: 0.8 + Math.random() * 0.8,
+        floatOffset: Math.random() * Math.PI * 2,
+        baseY: py
+      });
+    }
+
+    // ── 8. 2000+ Cyber Starfield & Particle Cloud ──
+    const particleCount = 2000;
+    const partGeo = new THREE.BufferGeometry();
+    const partPositions = new Float32Array(particleCount * 3);
+    const partColors = new Float32Array(particleCount * 3);
+
+    const colorPalette = [
+      new THREE.Color(0x08b5e5), // Cyan
+      new THREE.Color(0x168bff), // Blue
+      new THREE.Color(0x10b981), // Emerald
+      new THREE.Color(0x818cf8), // Violet
+      new THREE.Color(0xffffff)  // White
+    ];
+
+    for (let i = 0; i < particleCount; i++) {
+      partPositions[i * 3] = (Math.random() - 0.5) * 220;
+      partPositions[i * 3 + 1] = (Math.random() - 0.5) * 140;
+      partPositions[i * 3 + 2] = (Math.random() - 0.5) * 180;
+
+      const col = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+      partColors[i * 3] = col.r;
+      partColors[i * 3 + 1] = col.g;
+      partColors[i * 3 + 2] = col.b;
+    }
+
+    partGeo.setAttribute('position', new THREE.BufferAttribute(partPositions, 3));
+    partGeo.setAttribute('color', new THREE.BufferAttribute(partColors, 3));
+
+    const partMat = new THREE.PointsMaterial({
+      size: 0.85,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.75,
+      blending: THREE.AdditiveBlending
+    });
+    const particleSystem = new THREE.Points(partGeo, partMat);
+    scene.add(particleSystem);
+
+    // ── 9. Interactive Scroll & Mouse State ──
+    let scrollY = window.scrollY || 0;
+    let targetScrollProgress = 0;
+    let currentScrollProgress = 0;
+
+    const handleScroll = () => {
+      const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      scrollY = window.scrollY || window.pageYOffset;
+      targetScrollProgress = Math.min(1, Math.max(0, scrollY / maxScroll));
     };
-    draw();
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+
+    let mouseX = 0;
+    let mouseY = 0;
+    let targetMouseX = 0;
+    let targetMouseY = 0;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      targetMouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+      targetMouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+    };
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+
+    const handleResize = () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    };
+    window.addEventListener('resize', handleResize);
+
+    // ── 10. Animation Loop with Dynamic Scroll Choreography ──
+    let clock = new THREE.Clock();
+    let animId: number;
+
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+      const time = clock.getElapsedTime();
+
+      // Smooth scroll interpolation (lerp)
+      currentScrollProgress += (targetScrollProgress - currentScrollProgress) * 0.08;
+      mouseX += (targetMouseX - mouseX) * 0.05;
+      mouseY += (targetMouseY - mouseY) * 0.05;
+
+      // Camera Choreography based on scroll progress (0.0 Hero -> 1.0 Bottom CTA)
+      const sp = currentScrollProgress;
+      
+      // Dynamic camera path
+      const targetCamX = Math.sin(sp * Math.PI * 1.5) * 14 + mouseX * 3;
+      const targetCamY = 4 - sp * 18 - mouseY * 2;
+      const targetCamZ = 60 - Math.sin(sp * Math.PI) * 22 + sp * 15;
+
+      camera.position.x += (targetCamX - camera.position.x) * 0.05;
+      camera.position.y += (targetCamY - camera.position.y) * 0.05;
+      camera.position.z += (targetCamZ - camera.position.z) * 0.05;
+
+      camera.rotation.x = -mouseY * 0.06 + (sp * 0.22);
+      camera.rotation.y = -mouseX * 0.06 - (sp * 0.35);
+
+      // Rotate Globe on axis + orbital swing based on scroll
+      globeGroup.rotation.y = time * 0.12 + sp * Math.PI * 2.5;
+      globeGroup.rotation.x = Math.sin(time * 0.1) * 0.1 + sp * 0.4;
+      globeGroup.position.x = 16 - sp * 32 + mouseX * 2;
+      globeGroup.position.y = 2 + Math.sin(time * 0.8) * 1.2 + sp * 8;
+      globeGroup.position.z = -5 - sp * 18;
+
+      // Animate Arcs Beacons
+      arcBeacons.forEach(b => {
+        b.t = (b.t + b.speed + sp * 0.008) % 1;
+        const curve = arcCurves[b.curveIndex];
+        if (curve) {
+          const pt = curve.getPoint(b.t);
+          b.mesh.position.copy(pt);
+        }
+      });
+
+      // Animate Undulating Cyber Terrain Grid
+      const posAttr = terrainGeo.attributes.position;
+      const waveSpeed = time * 1.6 + sp * 4;
+      for (let i = 0; i < posAttr.count; i++) {
+        const vx = posAttr.getX(i);
+        const vy = posAttr.getY(i);
+        const zWave = Math.sin(vx * 0.09 + waveSpeed) * 2.4 +
+                      Math.cos(vy * 0.08 + waveSpeed * 0.8) * 1.8 +
+                      Math.sin((vx + vy) * 0.06 + waveSpeed * 1.2) * 1.2;
+        posAttr.setZ(i, zWave);
+      }
+      posAttr.needsUpdate = true;
+      terrainMesh.position.y = -22 + sp * 12;
+
+      // Animate Floating Supply Chain Nodes
+      floatingNodes.forEach(node => {
+        node.mesh.rotation.x += node.rotX;
+        node.mesh.rotation.y += node.rotY;
+        node.mesh.rotation.z += node.rotZ;
+        node.mesh.position.y = node.baseY + Math.sin(time * node.floatSpeed + node.floatOffset) * 2.5 - sp * 10;
+      });
+
+      // Animate Starfield / Particle Cloud
+      particleSystem.rotation.y = time * 0.02 + sp * 0.5;
+      particleSystem.rotation.x = Math.sin(time * 0.03) * 0.05 + sp * 0.2;
+
+      renderer.render(scene, camera);
+    };
+
+    animate();
+
+    // ── 11. Cleanup on Unmount ──
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('resize', handleResize);
+
+      if (container.contains(renderer.domElement)) {
+        container.removeChild(renderer.domElement);
+      }
+
+      renderer.dispose();
+      globeGeo.dispose();
+      globeMat.dispose();
+      coreGeo.dispose();
+      coreMat.dispose();
+      ringMat.dispose();
+      terrainGeo.dispose();
+      terrainMat.dispose();
+      partGeo.dispose();
+      partMat.dispose();
+    };
   }, []);
-  return <canvas ref={canvasRef} className="particle-canvas" />;
+
+  return <div ref={mountRef} className="scrolling-3d-canvas-container" />;
 }
 
 /* ─────────── 3D Tilt Card Component ─────────── */
@@ -165,7 +509,7 @@ export default function Landing({ onLaunch, onSignIn }: { onLaunch: () => void; 
 
   return (
     <div className="land">
-      <ParticleCanvas />
+      <Scrolling3DBackground />
 
       {/* ── Universal Navbar ── */}
       <nav className="land-nav">

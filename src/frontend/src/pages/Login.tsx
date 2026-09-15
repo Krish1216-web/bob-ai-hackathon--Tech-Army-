@@ -1,3 +1,4 @@
+import { Maritime3DBackground } from "../Maritime3DBackground";
 import React, { useState } from "react";
 import { useAuth } from "../AuthContext";
 import { ShieldCheck, Eye, EyeOff, Lock, Mail, ArrowRight, Sparkles, AlertTriangle, CheckCircle2, RefreshCw, Zap, KeyRound } from "lucide-react";
@@ -89,14 +90,15 @@ export default function Login({ navigate }: { navigate: (to: string) => void }) 
   };
 
   return (
-    <div className="auth-viewport" style={{ minHeight: "100vh", background: "#080d1c", display: "flex", color: "#f1f5f9" }}>
+    <div className="auth-viewport" style={{ minHeight: "100vh", background: "transparent", display: "flex", color: "#f1f5f9", position: "relative", overflow: "hidden" }}>
+      <Maritime3DBackground opacity={0.82} theme="cyber-maritime" />
       {/* Left Column: Brand & Control Tower Presentation */}
       <div
         className="auth-left-banner"
         style={{
           flex: "1.1",
-          background: "linear-gradient(145deg, #0b1426 0%, #060a14 100%)",
-          borderRight: "1px solid #1e2c45",
+          background: "transparent",
+          zIndex: 1,
           padding: "50px 60px",
           display: "flex",
           flexDirection: "column",
@@ -135,7 +137,7 @@ export default function Login({ navigate }: { navigate: (to: string) => void }) 
           </p>
 
           {/* Operational Micro-Preview */}
-          <div style={{ background: "#0e1829", border: "1px solid #202e48", borderRadius: "12px", padding: "18px 20px", maxWidth: "480px", boxShadow: "0 10px 30px rgba(0,0,0,0.4)" }}>
+          <div style={{ background: "rgba(8, 20, 44, 0.55)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", border: "1px solid rgba(56, 189, 248, 0.35)", borderRadius: "12px", padding: "18px 20px", maxWidth: "480px", boxShadow: "0 12px 35px rgba(0,0,0,0.4), 0 0 25px rgba(8,181,229,0.12)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", borderBottom: "1px solid #1c283f", paddingBottom: "10px" }}>
               <span style={{ fontSize: "11px", color: "#16c784", display: "flex", alignItems: "center", gap: "6px", fontWeight: "600" }}>
                 <i className="dot green" /> NETWORK LIVE SYNCHRONIZED
@@ -144,15 +146,15 @@ export default function Login({ navigate }: { navigate: (to: string) => void }) 
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", textAlign: "center" }}>
-              <div style={{ background: "#131f36", padding: "10px 8px", borderRadius: "8px", border: "1px solid #1e2c45" }}>
+              <div style={{ background: "rgba(10, 24, 52, 0.6)", padding: "10px 8px", borderRadius: "8px", border: "1px solid rgba(56, 189, 248, 0.25)" }}>
                 <strong style={{ display: "block", fontSize: "18px", color: "#ff414d" }}>4</strong>
                 <span style={{ fontSize: "10px", color: "#8fa3c1" }}>Active Events</span>
               </div>
-              <div style={{ background: "#131f36", padding: "10px 8px", borderRadius: "8px", border: "1px solid #1e2c45" }}>
+              <div style={{ background: "rgba(10, 24, 52, 0.6)", padding: "10px 8px", borderRadius: "8px", border: "1px solid rgba(56, 189, 248, 0.25)" }}>
                 <strong style={{ display: "block", fontSize: "18px", color: "#ff8a00" }}>8</strong>
                 <span style={{ fontSize: "10px", color: "#8fa3c1" }}>Critical Cargo</span>
               </div>
-              <div style={{ background: "#131f36", padding: "10px 8px", borderRadius: "8px", border: "1px solid #1e2c45" }}>
+              <div style={{ background: "rgba(10, 24, 52, 0.6)", padding: "10px 8px", borderRadius: "8px", border: "1px solid rgba(56, 189, 248, 0.25)" }}>
                 <strong style={{ display: "block", fontSize: "18px", color: "#08b5e5" }}>$4.8M</strong>
                 <span style={{ fontSize: "10px", color: "#8fa3c1" }}>Protected Value</span>
               </div>
@@ -189,11 +191,14 @@ export default function Login({ navigate }: { navigate: (to: string) => void }) 
           style={{
             width: "100%",
             maxWidth: "430px",
-            background: "#0e172a",
-            border: "1px solid #20314f",
+            background: "rgba(8, 20, 44, 0.65)",
+            backdropFilter: "blur(24px)",
+            WebkitBackdropFilter: "blur(24px)",
+            zIndex: 1,
+            border: "1px solid rgba(56, 189, 248, 0.4)",
             borderRadius: "16px",
             padding: "32px 28px",
-            boxShadow: "0 20px 50px rgba(0,0,0,0.5)"
+            boxShadow: "0 20px 60px rgba(0,0,0,0.55), 0 0 40px rgba(8,181,229,0.18)"
           }}
         >
           <div style={{ marginBottom: "20px" }}>
@@ -202,7 +207,7 @@ export default function Login({ navigate }: { navigate: (to: string) => void }) 
           </div>
 
           {/* Quick 1-Click Demo Login Bar */}
-          <div style={{ background: "rgba(8,181,229,0.06)", border: "1px solid rgba(8,181,229,0.22)", borderRadius: "10px", padding: "12px 14px", marginBottom: "20px" }}>
+          <div style={{ background: "rgba(8, 28, 58, 0.65)", border: "1px solid rgba(56, 189, 248, 0.35)", borderRadius: "10px", padding: "12px 14px", marginBottom: "20px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
               <span style={{ fontSize: "11px", fontWeight: "700", color: "#08b5e5", display: "flex", alignItems: "center", gap: "5px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                 <Zap size={13} fill="#08b5e5" /> 1-Click Demo Login
@@ -215,7 +220,7 @@ export default function Login({ navigate }: { navigate: (to: string) => void }) 
                 onClick={() => handleQuickDemo("admin@chainguard.ai")}
                 disabled={loading || googleLoading}
                 style={{
-                  background: "#131f36",
+                  background: "rgba(10, 24, 52, 0.75)",
                   border: "1px solid #283e5f",
                   borderRadius: "6px",
                   padding: "7px 10px",
@@ -238,7 +243,7 @@ export default function Login({ navigate }: { navigate: (to: string) => void }) 
                 onClick={() => handleQuickDemo("user@chainguard.ai")}
                 disabled={loading || googleLoading}
                 style={{
-                  background: "#131f36",
+                  background: "rgba(10, 24, 52, 0.75)",
                   border: "1px solid #283e5f",
                   borderRadius: "6px",
                   padding: "7px 10px",
@@ -282,7 +287,7 @@ export default function Login({ navigate }: { navigate: (to: string) => void }) 
                   onChange={(e) => setEmail(e.target.value)}
                   style={{
                     width: "100%",
-                    background: "#131f36",
+                    background: "rgba(10, 24, 52, 0.75)",
                     border: "1px solid #243550",
                     borderRadius: "8px",
                     padding: "9px 12px 9px 38px",
@@ -316,7 +321,7 @@ export default function Login({ navigate }: { navigate: (to: string) => void }) 
                   onChange={(e) => setPassword(e.target.value)}
                   style={{
                     width: "100%",
-                    background: "#131f36",
+                    background: "rgba(10, 24, 52, 0.75)",
                     border: "1px solid #243550",
                     borderRadius: "8px",
                     padding: "9px 38px 9px 38px",
@@ -384,7 +389,7 @@ export default function Login({ navigate }: { navigate: (to: string) => void }) 
             disabled={googleLoading || loading}
             style={{
               width: "100%",
-              background: "#131f36",
+              background: "rgba(10, 24, 52, 0.75)",
               border: "1px solid #243550",
               color: "#f8fafc",
               fontWeight: "600",
@@ -453,7 +458,7 @@ export default function Login({ navigate }: { navigate: (to: string) => void }) 
                   placeholder="name@company.com"
                   value={resetEmail}
                   onChange={(e) => setResetEmail(e.target.value)}
-                  style={{ width: "100%", background: "#131f36", border: "1px solid #243550", borderRadius: "6px", padding: "9px 12px", color: "#f8fafc", fontSize: "12px", outline: "none", marginBottom: "14px" }}
+                  style={{ width: "100%", background: "rgba(10, 24, 52, 0.75)", border: "1px solid #243550", borderRadius: "6px", padding: "9px 12px", color: "#f8fafc", fontSize: "12px", outline: "none", marginBottom: "14px" }}
                 />
                 <div style={{ display: "flex", gap: "10px" }}>
                   <button

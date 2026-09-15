@@ -4558,3 +4558,155 @@
   background: #0f151c;
   color: #f1f5f9;
 }
+
+
+/* Glassmorphism Depth Enhancements for 3D Maritime Background */
+.app-shell {
+  background: #040915 !important;
+}
+
+.sidebar {
+  background: rgba(13, 20, 36, 0.88) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-right: 1px solid rgba(32, 44, 66, 0.75) !important;
+}
+
+.topbar {
+  background: rgba(13, 20, 36, 0.85) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-bottom: 1px solid rgba(32, 44, 66, 0.75) !important;
+}
+
+.panel, .kpi, .container-card, .action-card, .opportunity, .preview-window, .event-list-row {
+  background: rgba(17, 24, 39, 0.78) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(32, 44, 66, 0.8) !important;
+}
+
+.panel:hover, .kpi:hover, .action-card:hover, .opportunity:hover {
+  background: rgba(20, 31, 52, 0.86) !important;
+  border-color: rgba(8, 181, 229, 0.45) !important;
+}
+
+
+
+/* ==========================================================================
+   ChainGuard AI — Dashboard Frosted Glassmorphism for 3D Maritime Viewport
+   Applies across Control Tower, Shipments, Disruptions, Fleet, Cold Chain,
+   AI Command Center, AI Copilot, What-If Simulator
+   ========================================================================== */
+
+.app-shell {
+  background: transparent !important;
+  min-height: 100vh;
+  position: relative;
+}
+
+body {
+  background: #020817 !important;
+}
+
+.sidebar {
+  background: rgba(6, 12, 28, 0.72) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-right: 1px solid rgba(56, 189, 248, 0.22) !important;
+}
+
+.topbar {
+  background: rgba(6, 12, 28, 0.72) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.22) !important;
+}
+
+.panel {
+  background: rgba(8, 18, 40, 0.65) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(56, 189, 248, 0.22) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(8, 181, 229, 0.06) !important;
+}
+
+.kpi {
+  background: rgba(8, 18, 40, 0.65) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(56, 189, 248, 0.22) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35) !important;
+}
+
+.risk-banner {
+  background: linear-gradient(90deg, rgba(59, 26, 41, 0.75), rgba(38, 24, 39, 0.75)) !important;
+  backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(239, 68, 68, 0.45) !important;
+}
+
+.risk-map {
+  background: rgba(8, 16, 36, 0.75) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(56, 189, 248, 0.22) !important;
+}
+
+.event-list-row, .action-card, .opportunity, .scenario {
+  background: rgba(8, 18, 40, 0.65) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(56, 189, 248, 0.22) !important;
+}
+
+.table-panel {
+  background: rgba(8, 18, 40, 0.65) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(56, 189, 248, 0.22) !important;
+}
+
+th {
+  background: rgba(14, 28, 56, 0.8) !important;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.2) !important;
+}
+
+td {
+  border-top: 1px solid rgba(56, 189, 248, 0.12) !important;
+}
+
+tbody tr:hover {
+  background: rgba(24, 48, 92, 0.45) !important;
+}
+
+.container-card {
+  background: rgba(8, 18, 40, 0.65) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(56, 189, 248, 0.22) !important;
+}
+
+.detail-stat-grid > div, .situation, .route-analysis > div, .route-box {
+  background: rgba(12, 24, 50, 0.6) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(56, 189, 248, 0.18) !important;
+}
+
+.searchbox, .outline-btn, .small-btn {
+  background: rgba(14, 28, 56, 0.6) !important;
+  border: 1px solid rgba(56, 189, 248, 0.25) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.copilot-drawer {
+  background: rgba(6, 12, 28, 0.88) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border-left: 1px solid rgba(56, 189, 248, 0.3) !important;
+}
+
+.modal-card {
+  background: rgba(8, 18, 40, 0.9) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+}

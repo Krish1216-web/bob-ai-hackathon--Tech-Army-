@@ -1,3 +1,4 @@
+import { Maritime3DBackground } from './Maritime3DBackground';
 import React, { Component, useEffect, useMemo, useState, useRef, type ReactNode } from 'react';
 import {
   AlertTriangle, ArrowRight, BarChart3, Bell, Check, CheckCircle2, ChevronDown, ChevronLeft,
@@ -724,9 +725,10 @@ function AppShell() {
   const page = routePages[path] || routePages['/app'] || routePages['/'];
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" style={{ position: 'relative' }}>
+      <Maritime3DBackground opacity={0.88} theme="cyber-maritime" activeRoute={path} />
       <Sidebar collapsed={collapsed} path={path} navigate={navigate} onToggle={() => setCollapsed((v) => !v)} />
-      <main className={`main-area ${collapsed ? 'expanded' : ''}`}>
+      <main className={`main-area ${collapsed ? 'expanded' : ''}`} style={{ position: 'relative', zIndex: 1 }}>
         <Header
           page={page}
           search={search}

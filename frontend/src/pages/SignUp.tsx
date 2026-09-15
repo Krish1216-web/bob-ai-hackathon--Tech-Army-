@@ -1,3 +1,4 @@
+import { Maritime3DBackground } from "../Maritime3DBackground";
 ﻿import React, { useState } from "react";
 import { useAuth } from "../AuthContext";
 import { ShieldCheck, Eye, EyeOff, Lock, Mail, User as UserIcon, ArrowRight, Sparkles, AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
@@ -104,14 +105,15 @@ export default function SignUp({ navigate }: { navigate: (to: string) => void })
   };
 
   return (
-    <div className="auth-viewport" style={{ minHeight: "100vh", background: "#080d1c", display: "flex", color: "#f1f5f9" }}>
+    <div className="auth-viewport" style={{ minHeight: "100vh", background: "transparent", display: "flex", color: "#f1f5f9", position: "relative", overflow: "hidden" }}>
+      <Maritime3DBackground opacity={0.82} theme="cyber-maritime" />
       {/* Left Column: Brand & Security Features */}
       <div
         className="auth-left-banner"
         style={{
           flex: "1.1",
-          background: "linear-gradient(145deg, #0b1426 0%, #060a14 100%)",
-          borderRight: "1px solid #1e2c45",
+          background: "transparent",
+          zIndex: 1,
           padding: "50px 60px",
           display: "flex",
           flexDirection: "column",
@@ -197,7 +199,10 @@ export default function SignUp({ navigate }: { navigate: (to: string) => void })
           style={{
             width: "100%",
             maxWidth: "440px",
-            background: "#0e172a",
+            background: "rgba(14, 23, 42, 0.86)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            zIndex: 1,
             border: "1px solid #20314f",
             borderRadius: "16px",
             padding: "36px 32px",
@@ -239,7 +244,7 @@ export default function SignUp({ navigate }: { navigate: (to: string) => void })
                   onChange={(e) => setFullName(e.target.value)}
                   style={{
                     width: "100%",
-                    background: "#131f36",
+                    background: "rgba(10, 24, 52, 0.75)",
                     border: "1px solid #243550",
                     borderRadius: "8px",
                     padding: "9px 12px 9px 38px",
@@ -264,7 +269,7 @@ export default function SignUp({ navigate }: { navigate: (to: string) => void })
                   onChange={(e) => setEmail(e.target.value)}
                   style={{
                     width: "100%",
-                    background: "#131f36",
+                    background: "rgba(10, 24, 52, 0.75)",
                     border: "1px solid #243550",
                     borderRadius: "8px",
                     padding: "9px 12px 9px 38px",
@@ -289,7 +294,7 @@ export default function SignUp({ navigate }: { navigate: (to: string) => void })
                   onChange={(e) => setPassword(e.target.value)}
                   style={{
                     width: "100%",
-                    background: "#131f36",
+                    background: "rgba(10, 24, 52, 0.75)",
                     border: "1px solid #243550",
                     borderRadius: "8px",
                     padding: "9px 38px 9px 38px",
@@ -321,7 +326,7 @@ export default function SignUp({ navigate }: { navigate: (to: string) => void })
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   style={{
                     width: "100%",
-                    background: "#131f36",
+                    background: "rgba(10, 24, 52, 0.75)",
                     border: "1px solid #243550",
                     borderRadius: "8px",
                     padding: "9px 12px 9px 38px",
@@ -395,7 +400,7 @@ export default function SignUp({ navigate }: { navigate: (to: string) => void })
             disabled={googleLoading || loading}
             style={{
               width: "100%",
-              background: "#131f36",
+              background: "rgba(10, 24, 52, 0.75)",
               border: "1px solid #243550",
               color: "#f8fafc",
               fontWeight: "600",
