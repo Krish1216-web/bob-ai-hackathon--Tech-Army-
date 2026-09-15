@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from app.models.recommendation import Recommendation
 from app.models.shipment import Shipment
 from app.models.fleet_asset import FleetAsset
@@ -41,7 +41,7 @@ class RecommendationService:
 
         rec.actioned = True
         rec.action_type = "ACCEPTED" if accept else "REJECTED"
-        rec.actioned_at = datetime.utcnow()
+        rec.actioned_at = datetime.now(timezone.utc)
 
         updated_shipment_status = None
         updated_asset_status = None

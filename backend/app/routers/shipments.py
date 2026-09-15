@@ -19,7 +19,7 @@ def list_shipments(
     if priority:
         query = query.filter(Shipment.priority == priority)
     shipments = query.order_by(Shipment.risk.desc()).all()
-    return [ShipmentResponse.from_orm(s) for s in shipments]
+    return [ShipmentResponse.model_validate(s) for s in shipments]
 
 @router.get("/{shipment_id}", response_model=ShipmentDetailResponse)
 def get_shipment_detail(shipment_id: str, db: Session = Depends(get_db)):
@@ -27,7 +27,7 @@ def get_shipment_detail(shipment_id: str, db: Session = Depends(get_db)):
     if not shipment:
         raise HTTPException(status_code=404, detail=f"Shipment {shipment_id} not found")
 
-    res = ShipmentDetailResponse.from_orm(shipment)
+    res = ShipmentDetailResponse.model_validate(shipment)
     res.active_disruptions = [shipment.disruption] if shipment.disruption and shipment.disruption != "None" else []
     res.recommendation_summary = f"Reroute via Mundra Port using Carrier B" if shipment.id == "SHP-1042" else "Active Monitoring"
     res.temperature_status = "CRITICAL EXCURSION (10.3°C)" if shipment.id == "SHP-1042" else "NORMAL"

@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, Float, Integer, DateTime
-from datetime import datetime
+from datetime import datetime, timezone
 from app.database import Base
 
 class ColdChainAlert(Base):
@@ -17,5 +17,5 @@ class ColdChainAlert(Base):
     configured_range = Column(String, default="2°C - 8°C")
     status = Column(String, default="ACTIVE", index=True) # ACTIVE, ACKNOWLEDGED, RESOLVED
     recommended_action = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     resolved_at = Column(DateTime, nullable=True)

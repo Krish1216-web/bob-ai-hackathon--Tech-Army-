@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
@@ -23,8 +23,7 @@ class ShipmentResponse(ShipmentBase):
     value_usd: Optional[float] = None
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ShipmentDetailResponse(ShipmentResponse):
     active_disruptions: List[str] = []

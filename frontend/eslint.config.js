@@ -19,10 +19,15 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true },
-      ],
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      // Large dashboard app with dynamic API shapes — any is acceptable here
+      '@typescript-eslint/no-explicit-any': 'warn',
+      // Unused vars: error on real unused, but allow underscore-prefixed params
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
+      // Allow empty catch blocks (used intentionally for silent fallback)
+      'no-empty': ['error', { allowEmptyCatch: true }],
+      // Handled by TS
+      'prefer-const': 'error',
     },
   }
 );

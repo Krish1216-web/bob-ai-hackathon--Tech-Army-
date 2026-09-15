@@ -1,4 +1,4 @@
-import { Shipment, AIAction, Severity } from './data';
+import { Shipment, AIAction } from './data';
 import { executeCopilotQuery } from './copilotEngine';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
@@ -20,7 +20,7 @@ async function fetchJson<T>(endpoint: string, options?: RequestInit): Promise<T 
       return null;
     }
     return await res.json();
-  } catch (err) {
+  } catch {
     return null;
   }
 }
@@ -89,13 +89,13 @@ export const api = {
   async createContainer(data: {
     container_id: string;
     shipment_id?: string;
-    cargo_type: string;
-    safe_min_temp?: number;
-    safe_max_temp?: number;
+    product_type?: string;
+    target_min_temperature?: number;
+    target_max_temperature?: number;
     latitude?: number;
     longitude?: number;
-    cargo_value?: number;
-    initial_temperature?: number;
+    cargo_value_usd?: number;
+    current_temperature?: number;
   }) {
     return await fetchJson<any>('/cold-chain/containers', {
       method: 'POST',
@@ -103,18 +103,18 @@ export const api = {
     });
   },
 
-  async bulkImportContainers(count: number = 5) {
+  async bulkImportContainers(containers: Array<{ container_id: string; product_type?: string; [key: string]: unknown }>) {
     return await fetchJson<any>('/cold-chain/bulk-import', {
       method: 'POST',
-      body: JSON.stringify({ count })
+      body: JSON.stringify({ containers })
     });
   },
 
   async simulateExcursion(payload: {
     container_id: string;
-    target_temp: number;
-    duration_mins: number;
-    description?: string;
+    target_temperature_c: number;
+    excursion_duration_mins: number;
+    mode?: string;
   }) {
     return await fetchJson<any>('/cold-chain/simulate-excursion', {
       method: 'POST',

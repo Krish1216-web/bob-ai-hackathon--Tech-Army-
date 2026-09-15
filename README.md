@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# bob-ai-hackathon--Tech-Army-
-=======
 # 🚀 ChainGuard AI — AI-Powered Supply Chain Resilience & Fleet Utilisation Control Tower
 
 > **IBM BoB AI Innovation Hackathon 2026** | **Track:** AI | **Team:** Tech Army
@@ -186,4 +183,3 @@ pytest -v
 3. **Step 3 — AI Recommendations (`/recommendations`)**: Review prescriptive action `a1` recommending a reroute to **Mundra Port Corridor** with Carrier B ($94\%$ confidence, $28\text{h}$ saved). Click **Accept & Execute** to mutate Supabase PostgreSQL.
 4. **Step 4 — LiveCold Anomaly Engine (`/cold-chain`)**: Select container `CTN-8801` to view its $+10.3^\circ\text{C}$ excursion, 4-layer anomaly triggers, and Sigmoid spoilage curve ($91.4\%$ risk). Click **Divert to Hub** to route to **Navi Mumbai Cold Hub** ($14.2\,\text{km}$).
 5. **Step 5 — Fleet Optimizer (`/fleet`) & What-If Simulation (`/simulator`)**: Redeploy idle reefer `TRK-204` ($18.5\% \rightarrow 54.2\%$ utilisation) and run Monte Carlo simulations showing $\$800\text{K}$ financial exposure reduction.
->>>>>>> 13bdb10 (feat: complete ChainGuard AI IBM BoB hackathon submission with Supabase persistence and LiveCold integration)

@@ -22,10 +22,22 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<{ data: any; error: any }>;
 }
 
+const DEMO_USER: User = {
+  id: 'demo-user-101',
+  app_metadata: { provider: 'email' },
+  user_metadata: { full_name: 'Operations Commander' },
+  aud: 'authenticated',
+  created_at: new Date().toISOString(),
+  email: 'commander@chainguard.ai',
+  phone: '',
+  role: 'authenticated',
+  updated_at: new Date().toISOString()
+};
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(DEMO_USER);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const isConfigured = true;
@@ -80,8 +92,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         persistProfile(result.data.user).catch((e) => console.warn("Profile persist err", e));
       }
       return result;
-    } catch (err: any) {
-      return { data: null, error: err };
+    } catch (_err) {
+      return { data: null, error: _err };
     }
   };
 
@@ -97,8 +109,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         persistProfile(result.data.user).catch((e) => console.warn("Profile persist err", e));
       }
       return result;
-    } catch (err: any) {
-      return { data: null, error: err };
+    } catch (_err) {
+      return { data: null, error: _err };
     }
   };
 
@@ -147,3 +159,4 @@ export function useAuth() {
   }
   return context;
 }
+

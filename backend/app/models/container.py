@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, Float, Boolean, DateTime
-from datetime import datetime
+from datetime import datetime, timezone
 from app.database import Base
 
 class Container(Base):
@@ -23,5 +23,5 @@ class Container(Base):
     is_anomaly = Column(Boolean, default=False)
     anomaly_layer = Column(String, default="NONE")
     spoilage_risk_pct = Column(Float, default=5.0)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

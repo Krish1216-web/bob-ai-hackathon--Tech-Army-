@@ -9,7 +9,7 @@ from app.models.cold_storage_hub import ColdStorageHub
 from app.models.recommendation import Recommendation
 from app.models.product_profile import ProductProfile
 from app.models.carrier import Carrier
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 def seed_database(db: Session):
     # Check if already seeded
@@ -133,7 +133,7 @@ def seed_database(db: Session):
     db.add_all(shipments_data)
 
     # 8. Sensor Readings for Cold Chain
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     readings = [
         SensorReading(shipment_id='SHP-1042', container_id='CTN-8801', timestamp=now - timedelta(hours=8), time_label='06:00', temperature_c=5.8, is_excursion=False, severity='NORMAL'),
         SensorReading(shipment_id='SHP-1042', container_id='CTN-8801', timestamp=now - timedelta(hours=6), time_label='08:00', temperature_c=6.1, is_excursion=False, severity='NORMAL'),

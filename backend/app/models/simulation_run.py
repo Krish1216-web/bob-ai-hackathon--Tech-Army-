@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, JSON
-from datetime import datetime
+from datetime import datetime, timezone
 from app.database import Base
 
 class SimulationRun(Base):
@@ -18,4 +18,4 @@ class SimulationRun(Base):
     critical_shipments_protected = Column(Integer, default=3)
     confidence = Column(Integer, default=94)
     comparison_data = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
