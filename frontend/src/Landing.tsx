@@ -475,7 +475,7 @@ function Counter({ target, suffix = '', prefix = '' }: { target: number; suffix?
 }
 
 /* ─────────── Main Landing Page ─────────── */
-export default function Landing({ onLaunch, onSignIn }: { onLaunch: () => void; onSignIn?: () => void }) {
+export default function Landing({ onLaunch, onSignIn, user }: { onLaunch: () => void; onSignIn?: () => void; user?: any }) {
   const [previewTab, setPreviewTab] = useState<'tower' | 'cold' | 'sim'>('tower');
   const [simHours, setSimHours] = useState(72);
   const [diverted, setDiverted] = useState(false);
@@ -525,9 +525,11 @@ export default function Landing({ onLaunch, onSignIn }: { onLaunch: () => void; 
             <a href="#workflow">Architecture</a>
           </div>
           <div className="land-nav-cta">
-            <button className="btn-ghost" onClick={onSignIn || onLaunch}>Sign In</button>
+            <button className="btn-ghost" onClick={onSignIn || onLaunch}>
+              {user ? 'Open Dashboard' : 'Sign In'}
+            </button>
             <button className="btn-primary" onClick={onLaunch}>
-              <Zap size={14} /> Launch Control Tower
+              <Zap size={14} /> {user ? 'Go to Control Tower' : 'Launch Control Tower'}
             </button>
           </div>
         </div>

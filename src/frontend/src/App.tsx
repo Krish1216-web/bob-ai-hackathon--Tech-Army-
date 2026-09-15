@@ -1,4 +1,4 @@
-import { Maritime3DBackground } from './Maritime3DBackground';
+import { StaticDashboardBackground } from './StaticDashboardBackground';
 import React, { Component, useEffect, useMemo, useState, useRef, type ReactNode } from 'react';
 import {
   AlertTriangle, ArrowRight, BarChart3, Bell, Check, CheckCircle2, ChevronDown, ChevronLeft,
@@ -693,11 +693,13 @@ function AppShell() {
 
   // Public Landing route
   if (path === '/' || path === '/landing') {
-    if (user && path === '/') {
-      setTimeout(() => navigate('/app'), 0);
-      return null;
-    }
-    return <Landing onLaunch={() => navigate(user ? '/app' : '/login')} onSignIn={() => navigate('/login')} />;
+    return (
+      <Landing
+        onLaunch={() => navigate(user ? '/app' : '/login')}
+        onSignIn={() => navigate(user ? '/app' : '/login')}
+        user={user}
+      />
+    );
   }
 
   // Auth routes
@@ -726,7 +728,7 @@ function AppShell() {
 
   return (
     <div className="app-shell" style={{ position: 'relative' }}>
-      <Maritime3DBackground opacity={0.88} theme="cyber-maritime" activeRoute={path} />
+      <StaticDashboardBackground activeRoute={path} />
       <Sidebar collapsed={collapsed} path={path} navigate={navigate} onToggle={() => setCollapsed((v) => !v)} />
       <main className={`main-area ${collapsed ? 'expanded' : ''}`} style={{ position: 'relative', zIndex: 1 }}>
         <Header
@@ -813,7 +815,7 @@ function Sidebar({ collapsed, path, navigate, onToggle }: { collapsed: boolean; 
   ];
   return (
     <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
-      <div className="brand" onClick={() => navigate('/app')} style={{ cursor: 'pointer' }}>
+      <div className="brand" onClick={() => navigate('/landing')} style={{ cursor: 'pointer' }} title="Return to Landing Page">
         <div className="brand-mark"><ShieldCheck size={28} /></div>
         <div className="brand-name"><b>CHAIN</b><b>GUARD</b><b>AI</b></div>
       </div>
