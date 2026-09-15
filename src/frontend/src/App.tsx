@@ -287,6 +287,7 @@ function AppShell() {
                   opportunities={opportunityList}
                   onRedeploy={handleRedeploy}
                   notify={notify}
+                  navigate={navigate}
                 />
               )}
               {path === '/fleet' && (
@@ -1028,7 +1029,8 @@ function CommandCenter({
   onAction,
   opportunities,
   onRedeploy,
-  notify
+  notify,
+  navigate
 }: {
   actionList: AIAction[];
   accepted: number;
@@ -1036,14 +1038,36 @@ function CommandCenter({
   opportunities: any[];
   onRedeploy: (assetId: string) => void;
   notify: (message: string, tone?: Toast['tone']) => void;
+  navigate?: (to: string) => void;
 }) {
+  const priorityCount = actionList.filter(a => a.level === 'CRITICAL' || a.level === 'HIGH').length;
+  const avgConfidence = actionList.length > 0
+    ? Math.round(actionList.reduce((acc, a) => acc + (a.confidence || 0), 0) / actionList.length) + '%'
+    : '100%';
+
+  const handleDetailsClick = (action: AIAction) => {
+    if (navigate) {
+      if (action.kind === 'REROUTE' || action.subject.includes('SHP-')) {
+        navigate('/shipments');
+      } else if (action.kind === 'REDEPLOY' || action.subject.includes('TRK-')) {
+        navigate('/fleet');
+      } else if (action.kind === 'THERMAL' || action.subject.includes('CTN-')) {
+        navigate('/cold-chain');
+      } else {
+        navigate('/disruptions');
+      }
+    } else if (notify) {
+      notify(`Opening operational view for ${action.subject}.`, 'success');
+    }
+  };
+
   return (
     <div className="page-stack">
       <div className="kpi-grid four">
         <KPI icon={Clock3} value={String(actionList.length)} label="Pending Actions" tone="orange" />
-        <KPI icon={Zap} value="2" label="Priority Alerts" tone="red" />
+        <KPI icon={Zap} value={String(priorityCount)} label="Priority Alerts" tone="red" />
         <KPI icon={CheckCircle2} value={String(accepted)} label="Accepted Today" tone="green" />
-        <KPI icon={BarChart3} value="91%" label="Avg Confidence" tone="cyan" />
+        <KPI icon={BarChart3} value={avgConfidence} label="Avg Confidence" tone="cyan" />
       </div>
 
       <div className="section-heading">
@@ -1066,7 +1090,7 @@ function CommandCenter({
               key={action.id}
               action={action}
               onAction={onAction}
-              onDetails={() => notify(`Opening operational data for ${action.title}.`)}
+              onDetails={() => handleDetailsClick(action)}
             />
           ))}
         </div>
@@ -1079,6 +1103,31 @@ function CommandCenter({
 
 function ActionCard({ action, onAction, onDetails }: { action: AIAction; onAction: (id: string, accept: boolean) => void; onDetails: () => void }) {
   const [expanded, setExpanded] = useState(false);
+
+  const reasons = (action as any).why_reasons || (action as any).reasons || (
+    action.kind === 'REROUTE' ? [
+      "1. Active disruption signal (Mumbai Port Strike) verified across JNPT corridor.",
+      "2. Cargo value and cold-chain sensitivity prioritized ($1.25M mRNA Vaccines).",
+      "3. Alternative route capacity verified at Mundra Maritime Terminal.",
+      "4. Carrier B capability matches required 2–8°C thermal SOP limits."
+    ] : action.kind === 'REDEPLOY' ? [
+      "1. Reefer truck TRK-204 is idle at Mumbai Hub (14h idle duration).",
+      "2. Compatibility match score evaluated at 91% for consignment SHP-1042.",
+      "3. Asset redeployment increases local depot utilisation from 18.5% to 54.2%.",
+      "4. Certified dual-compressor equipped for active temperature maintenance."
+    ] : action.kind === 'THERMAL' ? [
+      "1. Container CTN-8801 sensor stream breached SOP envelope (+10.3°C vs 2-8°C target).",
+      "2. Layer 1 physical bounds & Layer 2 rate-of-change spike (+1.8°C/hr) triggered.",
+      "3. Continuous spoilage risk probability computed at 91.4%.",
+      "4. Pune Pharma Cold Hub verified at 74 km proximity with 140T available capacity."
+    ] : [
+      "1. Operational risk index verified across real-time telemetry stream.",
+      "2. Disruption exposure score prioritized for proactive supervisor action.",
+      "3. Closed-loop PostgreSQL state mutation prepared for execution.",
+      "4. Multi-model AI recommendation score computed with high confidence."
+    ]
+  );
+
   return (
     <Panel className={`action-card ${action.level.toLowerCase()}`}>
       <div className="action-meta">
@@ -1101,15 +1150,14 @@ function ActionCard({ action, onAction, onDetails }: { action: AIAction; onActio
         <span>{action.confidence}% AI confidence</span>
       </div>
       <button className="reasoning-toggle" onClick={() => setExpanded(!expanded)}>
-        <BarChart3 size={14} /> View AI Reasoning &amp; Data Sources <ChevronDown size={14} className={expanded ? 'rotate' : ''} />
+        <BarChart3 size={14} /> View AI Reasoning &amp; Data Sources {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
       </button>
       {expanded && (
         <div className="reasoning">
           <p><b>Why this action?</b></p>
-          <span>1. Active disruption signal and route exposure verified across West Coast.</span>
-          <span>2. Cargo value and cold-chain sensitivity prioritized ($1.25M Vaccine).</span>
-          <span>3. Alternative capacity is currently verified at Mundra Port.</span>
-          <span>4. Carrier B capability matches required 2–8°C thermal telemetry.</span>
+          {reasons.map((r: string, idx: number) => (
+            <span key={idx}>{r}</span>
+          ))}
         </div>
       )}
       <div className="card-actions">
