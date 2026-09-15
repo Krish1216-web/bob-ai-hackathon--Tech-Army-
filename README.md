@@ -183,3 +183,59 @@ pytest -v
 3. **Step 3 — AI Recommendations (`/recommendations`)**: Review prescriptive action `a1` recommending a reroute to **Mundra Port Corridor** with Carrier B ($94\%$ confidence, $28\text{h}$ saved). Click **Accept & Execute** to mutate Supabase PostgreSQL.
 4. **Step 4 — LiveCold Anomaly Engine (`/cold-chain`)**: Select container `CTN-8801` to view its $+10.3^\circ\text{C}$ excursion, 4-layer anomaly triggers, and Sigmoid spoilage curve ($91.4\%$ risk). Click **Divert to Hub** to route to **Navi Mumbai Cold Hub** ($14.2\,\text{km}$).
 5. **Step 5 — Fleet Optimizer (`/fleet`) & What-If Simulation (`/simulator`)**: Redeploy idle reefer `TRK-204` ($18.5\% \rightarrow 54.2\%$ utilisation) and run Monte Carlo simulations showing $\$800\text{K}$ financial exposure reduction.
+
+
+
+## 🖥️ Demo
+
+Our solution provides an intelligent supply-chain control tower for monitoring disruptions, shipments, fleet utilisation, and cold-chain risks from a single interface.
+
+| Artifact | Link |
+|---|---|
+| 📹 Demo Video | [See demo/demo-video-link.txt](demo/demo-video-link.txt) |
+| 🌐 Live Demo | [See demo/live-demo-url.txt](demo/live-demo-url.txt) |
+| 🖼️ Screenshots | [See demo/screenshots/](demo/screenshots/) |
+| 📊 Presentation | [See presentation/slides.pdf](presentation/) |
+
+### 🎯 What the Demo Shows
+
+The demonstration focuses on an end-to-end disruption scenario:
+
+**Active Disruption → Affected Shipments → Risk Analysis → Alternative Route/Carrier → Fleet Response → Recommended Action**
+
+It also demonstrates our cold-chain monitoring workflow:
+
+**Sensor Data → Temperature Excursion Detection → Severity Classification → Alert → Corrective Action**
+
+The goal is to help logistics operators move from **reactive disruption management to proactive, data-driven decision-making**.
+
+---
+
+## ⚠️ Known Limitations
+
+We have intentionally kept the solution transparent about its current limitations.
+
+- **IoT data:** Cold-chain sensor data is simulated for demonstration purposes rather than being connected to physical IoT hardware.
+- **External logistics integrations:** Live carrier, GPS, port, weather, and transportation-management-system integrations are not currently available unless explicitly configured in the application.
+- **Optimization scope:** Route, carrier, and fleet recommendations operate on the available project data and implemented optimization/business logic.
+- **Regulatory classification:** Cold-chain severity uses configurable temperature policies and should not be interpreted as universal regulatory advice for every product or country.
+- **Demonstration data:** Seeded or simulated data may be used to reproduce disruption, fleet, and cold-chain scenarios consistently during the hackathon.
+- **Production readiness:** Additional authentication, monitoring, scaling, and external integrations may be required for a full production deployment.
+
+> These limitations reflect the current hackathon scope and provide a clear path toward future production deployment and real-world integrations.
+
+---
+
+## 🏅 What We're Most Proud Of
+
+We are most proud of bringing **multiple supply-chain risks into one actionable decision layer** instead of treating disruptions, fleet utilisation, and cold-chain monitoring as separate problems.
+
+Our strongest capability is the end-to-end disruption response workflow:
+
+**Detect → Analyze → Optimize → Act**
+
+When a disruption occurs, the platform can identify potentially affected shipments, evaluate operational risk, consider alternative transportation options, identify relevant fleet capacity, and surface actionable recommendations to the operator.
+
+The cold-chain component extends the platform beyond traditional shipment tracking by detecting temperature excursions and helping prioritize temperature-sensitive cargo before an incident becomes a larger operational or financial risk.
+
+The result is a **single operational control tower designed to help logistics teams make faster, more explainable decisions when supply-chain conditions change.**
