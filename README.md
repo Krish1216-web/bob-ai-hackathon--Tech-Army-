@@ -197,17 +197,6 @@ Our solution provides an intelligent supply-chain control tower for monitoring d
 | 🖼️ Screenshots | [See demo/screenshots/](demo/screenshots/) |
 | 📊 Presentation | [See presentation/slides.pdf](presentation/) |
 
-### 🎯 What the Demo Shows
-
-The demonstration focuses on an end-to-end disruption scenario:
-
-**Active Disruption → Affected Shipments → Risk Analysis → Alternative Route/Carrier → Fleet Response → Recommended Action**
-
-It also demonstrates our cold-chain monitoring workflow:
-
-**Sensor Data → Temperature Excursion Detection → Severity Classification → Alert → Corrective Action**
-
-The goal is to help logistics operators move from **reactive disruption management to proactive, data-driven decision-making**.
 
 ---
 
@@ -219,10 +208,7 @@ We have intentionally kept the solution transparent about its current limitation
 - **External logistics integrations:** Live carrier, GPS, port, weather, and transportation-management-system integrations are not currently available unless explicitly configured in the application.
 - **Optimization scope:** Route, carrier, and fleet recommendations operate on the available project data and implemented optimization/business logic.
 - **Regulatory classification:** Cold-chain severity uses configurable temperature policies and should not be interpreted as universal regulatory advice for every product or country.
-- **Demonstration data:** Seeded or simulated data may be used to reproduce disruption, fleet, and cold-chain scenarios consistently during the hackathon.
 - **Production readiness:** Additional authentication, monitoring, scaling, and external integrations may be required for a full production deployment.
-
-> These limitations reflect the current hackathon scope and provide a clear path toward future production deployment and real-world integrations.
 
 ---
 
