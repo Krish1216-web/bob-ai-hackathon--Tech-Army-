@@ -15,8 +15,8 @@
 |---|---|
 | **Team Name** | **Tech Army** |
 | **Track** | **AI** |
-| **Team Lead** | Krish Patel — krishpatel.techarmy@gmail.com |
-| **Members** | Krish Patel |
+| **Team Lead** | Krish Sankhavara — krishpatel.techarmy@gmail.com |
+| **Members** | Bhavik Rabadiya,Raj Bhut,Hit Barvaliya |
 
 ---
 
