@@ -1,1 +1,1 @@
-http://localhost:5173/
+ https://frontend-theta-sandy-vt0dijop0s.vercel.app
