@@ -8,7 +8,7 @@ import {
   Play, Pause, RotateCcw, FastForward, Battery, Droplets, Lock, Unlock, Cpu, Radio,
   type LucideIcon,
 } from 'lucide-react';
-import { AuthProvider, useAuth } from './AuthContext';
+import { AuthProvider, useAuth, getUserDisplayName, getUserAvatar, getUserInitials, getUserRole } from './AuthContext';
 import Landing from './Landing';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
@@ -507,7 +507,8 @@ function getInitialRoute(): string {
 }
 
 function AppShell() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, signOut, updateUserProfile } = useAuth();
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [path, setPath] = useState<string>(getInitialRoute());
   const [collapsed, setCollapsed] = useState(false);
   const [copilot, setCopilot] = useState(false);
@@ -544,7 +545,7 @@ function AppShell() {
 
   // Automatically navigate to /app when user logs in from an auth/landing page
   useEffect(() => {
-    if (user && (path === '/' || path === '/login' || path === '/signup' || path === '/auth/callback' || path.includes('access_token'))) {
+    if (user && (path === '/' || path === '/login' || path === '/signup' || path === '/auth/callback' || path.includes('access_token') || path.includes('code='))) {
       navigate('/app');
     }
   }, [user, path]);
@@ -738,6 +739,7 @@ function AppShell() {
           user={user}
           onSignOut={signOut}
           navigate={navigate}
+          onOpenPreferences={() => setProfileModalOpen(true)}
         />
         <div className="content-area">
           {search ? (
@@ -837,17 +839,189 @@ function Sidebar({ collapsed, path, navigate, onToggle }: { collapsed: boolean; 
   );
 }
 
+function ProfilePreferencesModal({
+  user,
+  onClose,
+  onUpdateProfile,
+  notify
+}: {
+  user: any;
+  onClose: () => void;
+  onUpdateProfile: (updates: any) => Promise<any>;
+  notify: (msg: string, type?: 'info' | 'success' | 'danger') => void;
+}) {
+  const userName = getUserDisplayName(user);
+  const userRole = getUserRole(user);
+  const userAvatar = getUserAvatar(user);
+
+  const [name, setName] = useState(userName);
+  const [role, setRole] = useState(userRole);
+  const [avatar, setAvatar] = useState(userAvatar);
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await onUpdateProfile({
+        full_name: name.trim() || userName,
+        role: role.trim() || userRole,
+        avatar_url: avatar.trim()
+      });
+      setSaving(false);
+      onClose();
+      notify(`Profile updated: ${name} (${role})`, 'success');
+    } catch {
+      setSaving(false);
+      onClose();
+    }
+  };
+
+  const initials = (name.split(' ').map((n: string) => n[0]).join('') || 'CG').toUpperCase().slice(0, 2);
+
+  return (
+    <div className="modal-backdrop" onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(4,8,18,0.85)', backdropFilter: 'blur(8px)', display: 'grid', placeItems: 'center', zIndex: 999 }}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ width: '460px', background: '#0d1527', border: '1px solid #1f2d47', borderRadius: '14px', padding: '24px', color: '#f8fafc', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '1px solid #1b263b', paddingBottom: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Settings2 size={18} style={{ color: '#08b5e5' }} />
+            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>Account Profile &amp; Preferences</h3>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#7185a3', cursor: 'pointer' }}>
+            <X size={16} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', background: '#080d1a', padding: '12px', borderRadius: '8px', border: '1px solid #162238' }}>
+            {avatar ? (
+              <img src={avatar} alt={name} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: '2px solid #08b5e5' }} />
+            ) : (
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #08b5e5, #0077b6)', color: '#fff', display: 'grid', placeItems: 'center', fontWeight: 'bold', fontSize: '16px' }}>
+                {initials}
+              </div>
+            )}
+            <div style={{ flex: 1 }}>
+              <span style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>Quick Switch Profiles:</span>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setName('Administrator');
+                    setRole('System Administrator');
+                    setAvatar('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80');
+                  }}
+                  style={{ padding: '3px 8px', fontSize: '11px', background: '#131f36', border: '1px solid #283e5f', borderRadius: '4px', color: '#c7d5e8', cursor: 'pointer' }}
+                >
+                  Admin
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setName('Lisa Nguyen');
+                    setRole('Operations Manager');
+                    setAvatar('https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80');
+                  }}
+                  style={{ padding: '3px 8px', fontSize: '11px', background: '#131f36', border: '1px solid #283e5f', borderRadius: '4px', color: '#c7d5e8', cursor: 'pointer' }}
+                >
+                  Lisa N.
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setName('Marcus Vance');
+                    setRole('Fleet Commander');
+                    setAvatar('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80');
+                  }}
+                  style={{ padding: '3px 8px', fontSize: '11px', background: '#131f36', border: '1px solid #283e5f', borderRadius: '4px', color: '#c7d5e8', cursor: 'pointer' }}
+                >
+                  Marcus V.
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAvatar('')}
+                  style={{ padding: '3px 8px', fontSize: '11px', background: '#131f36', border: '1px solid #283e5f', borderRadius: '4px', color: '#c7d5e8', cursor: 'pointer' }}
+                >
+                  Initials
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#94a3b8', marginBottom: '4px' }}>Display Name</label>
+            <input
+              type="text"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              style={{ width: '100%', background: '#131f36', border: '1px solid #243550', borderRadius: '6px', padding: '8px 10px', color: '#f8fafc', fontSize: '13px' }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#94a3b8', marginBottom: '4px' }}>Role / Job Title</label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              style={{ width: '100%', background: '#131f36', border: '1px solid #243550', borderRadius: '6px', padding: '8px 10px', color: '#f8fafc', fontSize: '13px' }}
+            >
+              <option value="System Administrator">System Administrator</option>
+              <option value="Operations Lead">Operations Lead</option>
+              <option value="Operations Manager">Operations Manager</option>
+              <option value="Cold Chain Logistics Director">Cold Chain Logistics Director</option>
+              <option value="Fleet Commander">Fleet Commander</option>
+              <option value="Safety & Compliance Officer">Safety &amp; Compliance Officer</option>
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#94a3b8', marginBottom: '4px' }}>Custom Avatar URL (Optional)</label>
+            <input
+              type="url"
+              placeholder="https://..."
+              value={avatar}
+              onChange={(e) => setAvatar(e.target.value)}
+              style={{ width: '100%', background: '#131f36', border: '1px solid #243550', borderRadius: '6px', padding: '8px 10px', color: '#f8fafc', fontSize: '13px' }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #1b263b', paddingTop: '14px' }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{ background: 'transparent', border: '1px solid #243550', borderRadius: '6px', padding: '8px 14px', color: '#94a3b8', fontSize: '12px', cursor: 'pointer' }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              style={{ background: '#08b5e5', border: 'none', borderRadius: '6px', padding: '8px 18px', color: '#040812', fontWeight: '700', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <CheckCircle2 size={14} />
+              <span>{saving ? 'Saving...' : 'Save Changes'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function Header({
-  page, search, setSearch, onCopilot, notifications, setNotifications, profile, setProfile, user, onSignOut, navigate
+  page, search, setSearch, onCopilot, notifications, setNotifications, profile, setProfile, user, onSignOut, navigate, onOpenPreferences
 }: {
   page: { title: string; subtitle: string }; search: string; setSearch: (value: string) => void;
   onCopilot: () => void; notifications: boolean; setNotifications: (value: boolean) => void;
   profile: boolean; setProfile: (value: boolean) => void;
   user: any; onSignOut: () => Promise<void>; navigate: (to: string) => void;
+  onOpenPreferences?: () => void;
 }) {
-  const userName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Operations Lead';
-  const userInitials = (userName.split(' ').map((n: string) => n[0]).join('') || 'CG').toUpperCase().slice(0, 2);
-  const userAvatar = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
+  const userName = getUserDisplayName(user);
+  const userInitials = getUserInitials(user);
+  const userAvatar = getUserAvatar(user);
+  const userRole = getUserRole(user);
 
   return (
     <header className="topbar">
@@ -899,7 +1073,7 @@ function Header({
                 {user?.app_metadata?.provider === 'google' ? 'Google SSO Authenticated' : 'Supabase Auth Verified'}
               </div>
               <button onClick={() => { setProfile(false); navigate('/'); }}><ExternalLink size={14} /> View Landing Page</button>
-              <button onClick={() => { setProfile(false); }}><Settings2 size={14} /> Preferences</button>
+              <button onClick={() => { setProfile(false); if (onOpenPreferences) onOpenPreferences(); }}><Settings2 size={14} /> Preferences &amp; Profile</button>
               <button
                 onClick={async () => {
                   setProfile(false);
